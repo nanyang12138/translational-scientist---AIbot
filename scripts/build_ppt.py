@@ -1,0 +1,422 @@
+"""Generate the in vivo CAR-T Translational Scientist PPT deck.
+
+Run: python3 scripts/build_ppt.py
+Output: dist/in_vivo_CART_Translational_Scientist.pptx
+"""
+from __future__ import annotations
+
+import os
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
+
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "dist")
+OUTPUT_PATH = os.path.normpath(
+    os.path.join(OUTPUT_DIR, "in_vivo_CART_Translational_Scientist.pptx")
+)
+
+PRIMARY = RGBColor(0x0B, 0x3D, 0x91)
+ACCENT = RGBColor(0x00, 0xA8, 0xA8)
+LIGHT = RGBColor(0xF2, 0xF6, 0xFA)
+DARK = RGBColor(0x1F, 0x2A, 0x44)
+GRAY = RGBColor(0x55, 0x5F, 0x70)
+
+
+def add_background(slide, color):
+    bg = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, 0, 0, Inches(13.333), Inches(7.5)
+    )
+    bg.fill.solid()
+    bg.fill.fore_color.rgb = color
+    bg.line.fill.background()
+    bg.shadow.inherit = False
+    slide.shapes._spTree.remove(bg._element)
+    slide.shapes._spTree.insert(2, bg._element)
+    return bg
+
+
+def add_left_bar(slide, color=PRIMARY, width=Inches(0.18)):
+    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, width, Inches(7.5))
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = color
+    bar.line.fill.background()
+    return bar
+
+
+def add_title(slide, text, top=Inches(0.45), color=PRIMARY, size=32, bold=True):
+    box = slide.shapes.add_textbox(Inches(0.6), top, Inches(12.0), Inches(0.9))
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    run.font.color.rgb = color
+    run.font.name = "Microsoft YaHei"
+    return box
+
+
+def add_subtitle(slide, text, top=Inches(1.25), color=GRAY, size=16):
+    box = slide.shapes.add_textbox(Inches(0.6), top, Inches(12.0), Inches(0.6))
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.color.rgb = color
+    run.font.name = "Microsoft YaHei"
+    return box
+
+
+def add_bullets(slide, bullets, left=Inches(0.7), top=Inches(1.9),
+                width=Inches(12.0), height=Inches(5.2), size=16):
+    box = slide.shapes.add_textbox(left, top, width, height)
+    tf = box.text_frame
+    tf.word_wrap = True
+    for i, item in enumerate(bullets):
+        if isinstance(item, tuple):
+            level, text = item
+        else:
+            level, text = 0, item
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.level = level
+        p.alignment = PP_ALIGN.LEFT
+        run = p.add_run()
+        prefix = "• " if level == 0 else "– "
+        run.text = prefix + text
+        run.font.size = Pt(size - level * 2)
+        run.font.color.rgb = DARK if level == 0 else GRAY
+        run.font.name = "Microsoft YaHei"
+        p.space_after = Pt(6)
+    return box
+
+
+def add_footer(slide, idx, total):
+    box = slide.shapes.add_textbox(Inches(11.5), Inches(7.05), Inches(1.6), Inches(0.35))
+    tf = box.text_frame
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.RIGHT
+    run = p.add_run()
+    run.text = f"{idx} / {total}"
+    run.font.size = Pt(10)
+    run.font.color.rgb = GRAY
+    run.font.name = "Microsoft YaHei"
+
+
+def make_cover(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide, PRIMARY)
+
+    accent = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, 0, Inches(6.6), Inches(13.333), Inches(0.15)
+    )
+    accent.fill.solid()
+    accent.fill.fore_color.rgb = ACCENT
+    accent.line.fill.background()
+
+    title = slide.shapes.add_textbox(Inches(0.8), Inches(2.2), Inches(11.7), Inches(1.6))
+    tf = title.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "in vivo CAR-T 转化科学家"
+    run.font.size = Pt(48)
+    run.font.bold = True
+    run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    run.font.name = "Microsoft YaHei"
+
+    sub = slide.shapes.add_textbox(Inches(0.8), Inches(3.6), Inches(11.7), Inches(1.0))
+    tf = sub.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "Translational Scientist 在 in vivo CAR-T 领域的核心任务"
+    run.font.size = Pt(24)
+    run.font.color.rgb = RGBColor(0xCF, 0xE6, 0xF5)
+    run.font.name = "Microsoft YaHei"
+
+    tag = slide.shapes.add_textbox(Inches(0.8), Inches(5.8), Inches(11.7), Inches(0.6))
+    tf = tag.text_frame
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "递送进去了吗？  •  做出 CAR-T 了吗？  •  安全且有效吗？"
+    run.font.size = Pt(18)
+    run.font.color.rgb = ACCENT
+    run.font.name = "Microsoft YaHei"
+
+    meta = slide.shapes.add_textbox(Inches(0.8), Inches(6.9), Inches(11.7), Inches(0.5))
+    tf = meta.text_frame
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "Prepared for: Nan Yang  |  Generated by Cursor Agent"
+    run.font.size = Pt(12)
+    run.font.color.rgb = RGBColor(0xCF, 0xE6, 0xF5)
+    run.font.name = "Microsoft YaHei"
+
+
+def make_content_slide(prs, title, subtitle, bullets):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide, LIGHT)
+    add_left_bar(slide, PRIMARY)
+    add_title(slide, title)
+    if subtitle:
+        add_subtitle(slide, subtitle)
+        top = Inches(1.95)
+    else:
+        top = Inches(1.4)
+    add_bullets(slide, bullets, top=top)
+    return slide
+
+
+def make_toc(prs, items):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide, LIGHT)
+    add_left_bar(slide, PRIMARY)
+    add_title(slide, "目录 / Agenda")
+    bullets = [f"{i+1:02d}.  {t}" for i, t in enumerate(items)]
+    add_bullets(slide, bullets, top=Inches(1.6), size=18)
+
+
+def make_summary(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide, PRIMARY)
+
+    add_title(
+        slide, "一句话总结",
+        color=RGBColor(0xFF, 0xFF, 0xFF), size=36
+    )
+
+    box = slide.shapes.add_textbox(Inches(0.8), Inches(2.2), Inches(11.7), Inches(3.5))
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = (
+        "in vivo CAR-T 的转化科学家，本质上要回答三个问题："
+    )
+    run.font.size = Pt(22)
+    run.font.color.rgb = RGBColor(0xCF, 0xE6, 0xF5)
+    run.font.name = "Microsoft YaHei"
+
+    p2 = tf.add_paragraph()
+    p2.space_before = Pt(18)
+    run = p2.add_run()
+    run.text = "“递送进去了吗？  →  做出 CAR-T 了吗？  →  安全且有效吗？”"
+    run.font.size = Pt(28)
+    run.font.bold = True
+    run.font.color.rgb = ACCENT
+    run.font.name = "Microsoft YaHei"
+
+    p3 = tf.add_paragraph()
+    p3.space_before = Pt(18)
+    run = p3.add_run()
+    run.text = (
+        "并通过 biomarker、PK/PD 模型与跨职能协作，"
+        "把这三个答案从动物外推到人，并在临床阶段持续迭代。"
+    )
+    run.font.size = Pt(20)
+    run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    run.font.name = "Microsoft YaHei"
+
+
+def make_thanks(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide, LIGHT)
+    add_left_bar(slide, ACCENT)
+
+    box = slide.shapes.add_textbox(Inches(0.8), Inches(2.8), Inches(11.7), Inches(2.0))
+    tf = box.text_frame
+    p = tf.paragraphs[0]
+    run = p.add_run()
+    run.text = "Thank You"
+    run.font.size = Pt(60)
+    run.font.bold = True
+    run.font.color.rgb = PRIMARY
+    run.font.name = "Microsoft YaHei"
+
+    p2 = tf.add_paragraph()
+    p2.space_before = Pt(12)
+    run = p2.add_run()
+    run.text = "欢迎进一步讨论 in vivo CAR-T 转化策略与管线对标"
+    run.font.size = Pt(20)
+    run.font.color.rgb = GRAY
+    run.font.name = "Microsoft YaHei"
+
+
+def build():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+
+    sections = [
+        "in vivo CAR-T 概述与 TS 角色",
+        "靶点与适应症的转化可行性评估",
+        "递送系统的转化表征",
+        "药效学 / 转化药理学 (PK-PD-Efficacy)",
+        "安全性与风险转化",
+        "生物标志物 (Biomarker) 策略",
+        "转化模型与建模仿真 (M&S)",
+        "跨职能协作与 IND/CTA 文件",
+        "临床阶段的反向转化",
+        "一句话总结",
+    ]
+
+    make_cover(prs)
+    make_toc(prs, sections)
+
+    make_content_slide(
+        prs,
+        "01  in vivo CAR-T 概述与 TS 角色",
+        "通过体内递送 (LNP-mRNA / 病毒载体) 直接生成 CAR-T，绕过 ex vivo 流程",
+        [
+            "in vivo CAR-T：通过 LNP-mRNA、慢病毒或 AAV 在患者体内生成 CAR-T 细胞",
+            "绕过传统 ex vivo 的关键步骤：白细胞采集、体外编辑/扩增、淋巴清除",
+            (1, "缩短交付时间、降低成本、扩大可及性"),
+            (1, "对递送、表达动力学、安全性提出全新要求"),
+            "转化科学家 (TS) 是 Discovery / CMC 与 Clinical 的桥梁",
+            (1, "核心使命：让临床前数据可解释、可外推、可指导临床决策"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "02  靶点与适应症的转化可行性评估",
+        "Target Safety Assessment 与适应症排序",
+        [
+            "评估靶点在健康组织 vs. 病变组织的表达谱",
+            (1, "代表性靶点：CD19、BCMA、CD20、CD7、Claudin18.2 等"),
+            (1, "结合人源单细胞/蛋白质组数据判断 on-target/off-tumor 风险"),
+            "比较 in vivo 与 ex vivo 给药差异",
+            (1, "靶向递送窗口、正常 B 细胞清除及恢复动力学"),
+            "输出 Target Safety Assessment (TSA) 与适应症排序",
+            (1, "支持立项决策与 IND 策略制定"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "03  递送系统的转化表征",
+        "in vivo CAR-T 的核心差异点 —— 递送决定一切",
+        [
+            "靶向 LNP 的转染特异性评估",
+            (1, "抗 CD5/CD7/CD3/CD8 抗体偶联或可电离脂质对 T 细胞 (HSC、NK) 的特异性"),
+            (1, "量化非靶细胞 (肝、脾巨噬细胞) 摄取"),
+            "建立关键测定方法",
+            (1, "生物分布 (BioD)、mRNA/CAR 蛋白表达动力学"),
+            (1, "体内 CAR+ 细胞频率/绝对数：qPCR、ddPCR、流式、IHC、scRNA-seq"),
+            "评估重复给药可行性",
+            (1, "ADA、补体激活、PEG 相关过敏反应 (CARPA)"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "04  药效学 / 转化药理学",
+        "PK-PD-Efficacy 三角与 FIH 起始剂量",
+        [
+            "在合适动物模型中开展研究：人源化 NSG/HuPBMC、syngeneic 小鼠、NHP",
+            "PK：LNP 分布、mRNA 半衰期",
+            "PD：CAR 表达水平、体内 CAR-T 扩增曲线、靶细胞清除、细胞因子谱",
+            "Efficacy：肿瘤负荷下降、生存期、复发与抗原逃逸",
+            "构建 MABEL / PAD (Pharmacologically Active Dose) 模型",
+            (1, "为 FIH 起始剂量提供依据"),
+            (1, "剂量以 mg mRNA/kg 表示 —— 与 ex vivo 的细胞剂量概念根本不同"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "05  安全性与风险转化",
+        "in vivo CAR-T 特有风险及可转化的安全性 biomarker",
+        [
+            "in vivo CAR-T 特有风险",
+            (1, "CRS / ICANS：动力学不同，因 CAR-T 是“内源生成”的"),
+            (1, "基因毒性 / 插入突变：若使用病毒载体或 DNA 模板"),
+            (1, "非靶细胞被转染导致 CAR 在非 T 细胞表达"),
+            (1, "LNP 相关肝毒性、补体激活、过敏反应"),
+            "与毒理团队共同设计 GLP 毒理研究",
+            (1, "可转化 biomarker：IL-6、IFN-γ、铁蛋白、CRP、神经丝轻链 NfL"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "06  生物标志物 (Biomarker) 策略",
+        "覆盖入组、PD、安全性与耐药四大维度",
+        [
+            "入组 / 分层 biomarker：靶抗原表达、T 细胞数量与功能、既往治疗",
+            "PD biomarker：外周血 CAR mRNA/拷贝数、CAR+ T 细胞比例、靶细胞清除",
+            "安全性 biomarker：细胞因子风暴标志物、补体激活、肝功能",
+            "耐药 biomarker：抗原丢失、T 细胞耗竭、TME 免疫抑制",
+            "制定 Assay Development & Validation Plan",
+            (1, "确保从临床前到临床方法学一致、数据可比"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "07  转化模型与建模仿真 (M&S)",
+        "QSP / PBPK / Semi-mechanistic PK-PD 支持 Ph1 设计",
+        [
+            "动物→人剂量外推",
+            (1, "allometric scaling 对 LNP 通常不直接适用"),
+            (1, "需基于受体占有率与靶细胞动力学进行机制建模"),
+            "情景模拟支持方案设计",
+            (1, "单剂 vs. 多剂、剂量递增策略"),
+            (1, "CAR-T 扩增与 B 细胞恢复曲线"),
+            "输出：Ph1 给药方案、监测频次、暂停规则的定量依据",
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "08  跨职能协作与 IND/CTA 文件",
+        "TS 是 IND/CTA 转化章节的主笔人",
+        [
+            "撰写 IND/CTA 关键模块",
+            (1, "Module 2.6.4 (药理学) / 2.6.6 (毒理学总结)"),
+            (1, "转化科学章节"),
+            "与 CMC 协调批次表征对体内表现的影响",
+            (1, "LNP 粒径、PDI、包封率、mRNA 完整性"),
+            "与临床团队共同设计 Ph1 方案",
+            (1, "剂量递增 (BOIN/mTPI 等)、暂停规则"),
+            (1, "监测频次、生物样本采集计划"),
+        ],
+    )
+
+    make_content_slide(
+        prs,
+        "09  临床阶段的反向转化",
+        "Reverse Translation —— 让临床数据回灌到下一代设计",
+        [
+            "收集 Ph1 患者的 PK/PD/biomarker 数据",
+            (1, "回灌至临床前模型，校准动物→人外推"),
+            "解释非预期信号",
+            (1, "如 CAR 持久性短、CRS 偏强"),
+            "指导下一代产品与策略",
+            (1, "下一代 LNP / mRNA 设计"),
+            (1, "联合用药：IL-6R 拮抗剂预处理、淋巴清除替代方案"),
+        ],
+    )
+
+    make_summary(prs)
+    make_thanks(prs)
+
+    total = len(prs.slides)
+    for i, slide in enumerate(prs.slides, start=1):
+        if i == 1 or i == total:
+            continue
+        add_footer(slide, i, total)
+
+    prs.save(OUTPUT_PATH)
+    print(f"Saved: {OUTPUT_PATH}")
+
+
+if __name__ == "__main__":
+    build()
