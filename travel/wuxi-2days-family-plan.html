@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>无锡两天一夜亲子family之旅 · 上海出发 · 含16个月宝宝与长辈</title>
+<style>
+  :root {
+    --primary: #1f7a8c;
+    --primary-dark: #0b4f6c;
+    --accent: #e07a5f;
+    --accent-soft: #f2cc8f;
+    --bg: #f7f9fb;
+    --card: #ffffff;
+    --text: #243137;
+    --muted: #5b6b73;
+    --line: #e3eaee;
+    --baby: #ef9fbc;
+    --elder: #6a9c89;
+    --warn: #d9534f;
+    --shadow: 0 6px 22px rgba(11, 79, 108, .10);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px 80px; }
+
+  header.hero {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: #fff;
+    padding: 48px 20px 56px;
+    text-align: center;
+    border-radius: 0 0 28px 28px;
+    box-shadow: var(--shadow);
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .5px; }
+  header.hero p.sub { margin: 4px 0; opacity: .95; font-size: 15px; }
+  .hero-tags { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .hero-tags span {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    padding: 6px 14px; border-radius: 999px; font-size: 13px;
+  }
+
+  nav.toc {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-top: -28px;
+    position: relative;
+    z-index: 2;
+  }
+  nav.toc h2 { margin: 0 0 10px; font-size: 15px; color: var(--muted); }
+  nav.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  nav.toc a {
+    text-decoration: none; color: var(--primary-dark);
+    background: #eef5f7; padding: 7px 13px; border-radius: 10px; font-size: 13.5px;
+    border: 1px solid var(--line); transition: .15s;
+  }
+  nav.toc a:hover { background: var(--primary); color: #fff; }
+
+  section { margin-top: 34px; }
+  h2.sec {
+    font-size: 22px; margin: 0 0 16px;
+    padding-left: 14px; border-left: 6px solid var(--accent);
+  }
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 18px;
+  }
+
+  /* timeline */
+  .day-head {
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(135deg, var(--primary), #2e93a3);
+    color: #fff; border-radius: var(--radius); padding: 16px 22px; margin-bottom: 16px;
+  }
+  .day-head .num {
+    background: #fff; color: var(--primary-dark); font-weight: 800; font-size: 20px;
+    width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  }
+  .day-head h3 { margin: 0; font-size: 19px; }
+  .day-head .meta { font-size: 13px; opacity: .92; }
+
+  .slot { position: relative; padding-left: 92px; margin-bottom: 6px; }
+  .slot::before {
+    content: ""; position: absolute; left: 70px; top: 6px; bottom: -6px; width: 2px; background: var(--line);
+  }
+  .slot:last-child::before { display: none; }
+  .slot .time {
+    position: absolute; left: 0; top: 2px; width: 62px; text-align: right;
+    font-weight: 700; color: var(--primary-dark); font-size: 13.5px;
+  }
+  .slot .dot {
+    position: absolute; left: 64px; top: 6px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .slot .body { padding-bottom: 18px; }
+  .slot .body h4 { margin: 0 0 4px; font-size: 16px; }
+  .slot .body p { margin: 4px 0; color: var(--muted); font-size: 14px; }
+
+  .pill { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; margin-right: 6px; font-weight: 600; }
+  .pill.baby { background: #fde6ee; color: #c2185b; }
+  .pill.elder { background: #e3f1ec; color: #2e7d5b; }
+  .pill.food { background: #fff1d6; color: #b9770e; }
+  .pill.move { background: #e6eef9; color: #2456a6; }
+  .pill.tip  { background: #eae6fb; color: #5b3fb0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef5f7; color: var(--primary-dark); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+
+  ul.clean { margin: 6px 0; padding-left: 20px; }
+  ul.clean li { margin: 5px 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .slot { padding-left: 76px; }
+    .slot .time { width: 50px; font-size: 12px; }
+    .slot::before { left: 58px; }
+    .slot .dot { left: 52px; }
+    header.hero h1 { font-size: 23px; }
+  }
+
+  .callout {
+    border-left: 5px solid var(--accent); background: #fff7f3;
+    padding: 12px 16px; border-radius: 10px; margin: 12px 0; font-size: 14px;
+  }
+  .callout.baby { border-color: var(--baby); background: #fff5f9; }
+  .callout.elder { border-color: var(--elder); background: #f1f8f5; }
+  .callout.warn { border-color: var(--warn); background: #fdf1f0; }
+  .callout strong { color: var(--primary-dark); }
+
+  .checklist { columns: 2; column-gap: 28px; }
+  .checklist label { display: block; font-size: 14px; margin: 6px 0; break-inside: avoid; cursor: pointer; }
+  .checklist input { margin-right: 8px; }
+  @media (max-width: 640px) { .checklist { columns: 1; } }
+
+  .budget-total { font-size: 18px; font-weight: 800; color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 50px; }
+  .note { font-size: 12.5px; color: var(--muted); }
+  a.link { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>无锡 · 两天一夜亲子家庭之旅</h1>
+  <p class="sub">上海出发往返 · 高铁直达 · 一家四口（爸爸 + 妈妈 + 父亲 + 16个月宝宝）</p>
+  <p class="sub">主题：慢节奏 · 婴儿车友好 · 长辈不累 · 太湖风光 + 古镇运河</p>
+  <div class="hero-tags">
+    <span>🚄 上海↔无锡 高铁约 45–60 分钟</span>
+    <span>👶 16个月幼儿专属安排</span>
+    <span>👴 长辈舒适优先</span>
+    <span>🗓 建议春秋两季最佳</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>快速导航</h2>
+    <ul>
+      <li><a href="#overview">行程总览</a></li>
+      <li><a href="#transport">交通方案</a></li>
+      <li><a href="#hotel">住宿建议</a></li>
+      <li><a href="#day1">Day 1 行程</a></li>
+      <li><a href="#day2">Day 2 行程</a></li>
+      <li><a href="#food">美食地图</a></li>
+      <li><a href="#baby">宝宝照护</a></li>
+      <li><a href="#elder">长辈关怀</a></li>
+      <li><a href="#pack">行李清单</a></li>
+      <li><a href="#budget">费用预算</a></li>
+      <li><a href="#emergency">应急信息</a></li>
+      <li><a href="#planB">备选/雨天方案</a></li>
+    </ul>
+  </nav>
+
+  <!-- 总览 -->
+  <section id="overview">
+    <h2 class="sec">一、行程总览</h2>
+    <div class="card">
+      <p>本方案为带 <strong>16个月宝宝</strong> 与 <strong>父亲（长辈）</strong> 的家庭量身定制，核心原则：<strong>景点少而精、节奏慢、少走路、随时能坐能喂能换尿布</strong>。每天只安排 1–2 个主景点，午后预留宝宝午睡时间，避免暴走和赶场。</p>
+      <table>
+        <tr><th>项目</th><th>安排</th></tr>
+        <tr><td>出发地 / 目的地</td><td>上海 → 无锡（往返高铁）</td></tr>
+        <tr><td>时长</td><td>2 天 1 夜</td></tr>
+        <tr><td>人数</td><td>4 人（3 名成人 + 1 名 16 个月幼儿，免票）</td></tr>
+        <tr><td>Day 1 主线</td><td>上午抵锡 → 惠山古镇（平坦好走）→ 午餐 → 鼋头渚太湖风光（电瓶车+游船代步）→ 南长街/清名桥运河夜景</td></tr>
+        <tr><td>Day 2 主线</td><td>上午 蠡园（小巧精致，半天）或 拈花湾（禅意度假）二选一 → 午餐 → 返沪</td></tr>
+        <tr><td>整体强度</td><td>低～中（适合老人小孩，全程可推婴儿车 / 备代步）</td></tr>
+      </table>
+      <div class="callout">
+        <strong>核心提醒：</strong>带 16 个月宝宝出行，"宁可少看一个景点，也不要打乱孩子的吃睡节奏"。本计划所有时间均为<strong>弹性参考</strong>，以宝宝状态为准。
+      </div>
+    </div>
+  </section>
+
+  <!-- 交通 -->
+  <section id="transport">
+    <h2 class="sec">二、交通方案</h2>
+    <div class="card">
+      <h4>① 上海 ⇄ 无锡（高铁）</h4>
+      <ul class="clean">
+        <li><span class="pill move">车次</span>上海站 / 上海虹桥站 均有大量高铁、动车直达 <strong>无锡站</strong> 或 <strong>无锡东站</strong>，车程约 <strong>45–60 分钟</strong>，二等座约 ¥60–80/人。</li>
+        <li><span class="pill tip">购票</span>提前 1–3 天用「铁路12306」App 购票。<strong>16个月宝宝</strong>未满 1.5m 且不单独占座可免票（1名成人限带1名免票儿童），但仍需在购票时如实登记同行儿童信息。</li>
+        <li><span class="pill tip">选座</span>优先选 <strong>靠窗 + 相邻座位</strong>，方便抱娃看风景。可选商务/一等座让长辈更舒适（座椅更宽、人少更安静）。</li>
+        <li><span class="pill baby">建议</span>去程订 <strong>上午 8:30–9:30</strong> 出发的车次（宝宝刚睡醒状态好）；返程 Day 2 订 <strong>15:30–17:00</strong> 之间，正好契合午睡后返程在车上补觉。</li>
+      </ul>
+      <h4>② 无锡市内交通</h4>
+      <ul class="clean">
+        <li><span class="pill move">首选</span>全程 <strong>网约车 / 出租车</strong>（滴滴）。带老人孩子+婴儿车+行李，打车最省心，市内单程多在 ¥15–40。</li>
+        <li><span class="pill move">地铁</span>无锡地铁 1/2/3/4 号线覆盖主要区域，有母婴电梯，但带婴儿车换乘略麻烦，适合短途。</li>
+        <li><span class="pill warn">安全</span>无锡出租车/网约车一般不强制配儿童座椅，但<strong>强烈建议自带便携式儿童安全座椅或 ISOFIX 增高垫</strong>，全程不要大人抱着坐车。</li>
+      </ul>
+      <div class="callout baby">
+        <strong>婴儿车选择：</strong>带一台 <strong>轻便可折叠（一键收车、可登机）的伞车</strong>，无锡多数景点（惠山古镇、蠡园、南长街、鼋头渚主干道）路面平整，婴儿车可用。爬坡/石阶路段用<strong>背带/腰凳</strong>过渡。
+      </div>
+    </div>
+  </section>
+
+  <!-- 住宿 -->
+  <section id="hotel">
+    <h2 class="sec">三、住宿建议（住 1 晚）</h2>
+    <div class="card">
+      <p>建议选 <strong>太湖新城 / 南长街（梁溪区）一带</strong> 的亲子友好酒店，靠近运河夜景，吃饭、打车都方便。</p>
+      <table>
+        <tr><th>选区</th><th>优点</th><th>适合</th></tr>
+        <tr><td><strong>南长街 / 古运河旁</strong></td><td>夜景步行可达、餐饮多、生活便利</td><td>想晚上散步看夜景</td></tr>
+        <tr><td><strong>太湖新城 / 万达</strong></td><td>商场综合体、亲子设施全、房间新</td><td>下雨天有室内备选</td></tr>
+        <tr><td><strong>蠡湖 / 鼋头渚附近</strong></td><td>近湖景、安静、空气好</td><td>主打太湖度假</td></tr>
+      </table>
+      <h4>订房必查清单</h4>
+      <ul class="clean">
+        <li><span class="pill baby">婴儿</span>可免费加 <strong>婴儿床</strong>（订房时电话确认，热门时段需提前预约）。</li>
+        <li><span class="pill elder">长辈</span>优先 <strong>低楼层 / 电梯近、带浴缸或防滑扶手</strong> 的房间。</li>
+        <li><span class="pill tip">房型</span>订 <strong>家庭房 / 双床房 + 加婴儿床</strong>，3 大 1 小空间充足；或一间大床房 + 一间标间。</li>
+        <li><span class="pill tip">设施</span>确认有 <strong>热水壶（冲奶）、空调、近便利店/超市</strong>。</li>
+      </ul>
+      <div class="callout">建议提前在携程/美团预订并选「<strong>免费取消</strong>」，留出弹性。</div>
+    </div>
+  </section>
+
+  <!-- DAY 1 -->
+  <section id="day1">
+    <h2 class="sec">四、Day 1 · 抵达 + 古镇 + 太湖 + 运河夜景</h2>
+    <div class="day-head">
+      <div class="num">1</div>
+      <div>
+        <h3>第一天</h3>
+        <div class="meta">关键词：轻松抵达 · 平坦古镇 · 太湖代步游 · 浪漫运河夜</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="slot">
+        <div class="time">08:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>上海出发乘高铁 <span class="pill move">交通</span></h4>
+          <p>从上海/虹桥站出发，约 1 小时抵达无锡。提前 40 分钟到站过安检，带娃过检留足时间。车上给宝宝准备小零食/绘本安抚。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">09:40</div><div class="dot"></div>
+        <div class="body">
+          <h4>抵达无锡 · 打车前往酒店寄存行李 <span class="pill tip">提示</span></h4>
+          <p>先到酒店放下大件行李（未到入住时间可先寄存），只带婴儿车 + 妈咪包轻装出行。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">10:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>惠山古镇（免门票，园区内祠堂/锡惠公园另收费）<span class="pill elder">长辈友好</span></h4>
+          <p>古镇路面平坦、婴儿车好推，古运河、祠堂群、二泉、老字号小吃集中，<strong>逛 1.5–2 小时</strong>足够，不累。长辈可在泉边茶座休息。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">12:00</div><div class="dot"></div>
+        <div class="body">
+          <h4>午餐 · 无锡本帮味 <span class="pill food">美食</span></h4>
+          <p>古镇内或附近吃 <strong>无锡酱排骨、小笼包、馄饨、银鱼</strong>。给宝宝单点 <strong>清淡白粥/软面/蒸蛋</strong>（无锡菜偏甜，宝宝餐务必另做清淡）。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">13:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>回酒店午休（宝宝午睡）<span class="pill baby">关键</span></h4>
+          <p>办理入住，<strong>让宝宝和长辈睡个午觉</strong>，这是带娃行程能持续的关键。大人也补充体力。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">15:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>鼋头渚 · 太湖第一名胜 <span class="pill move">代步</span></h4>
+          <p>园区很大，<strong>务必坐园内电瓶车 + 太湖游船</strong>代步，避免暴走。看太湖、长春桥、樱花/湖景，坐船吹湖风很惬意。<strong>玩 2–2.5 小时</strong>，傍晚光线最美适合拍全家福。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">18:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>晚餐 + 南长街 / 清名桥古运河夜景 <span class="pill food">美食</span><span class="pill tip">夜景</span></h4>
+          <p>南长街沿河餐厅众多，吃饭顺便散步看灯光运河夜景，气氛好、距离短。<strong>宝宝怕吵/犯困就早点回</strong>，不强求看完全程。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">20:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>回酒店休息 <span class="pill baby">作息</span></h4>
+          <p>给宝宝洗澡、冲奶、按平时作息哄睡。大人整理次日行李，给手机/充电宝充电。</p>
+        </div>
+      </div>
+      <div class="callout elder">
+        <strong>长辈节奏：</strong>Day1 安排了充足午休，鼋头渚全程代步，晚上散步距离短，整体强度低，老人不会累垮。
+      </div>
+    </div>
+  </section>
+
+  <!-- DAY 2 -->
+  <section id="day2">
+    <h2 class="sec">五、Day 2 · 精致景点 + 从容返沪</h2>
+    <div class="day-head">
+      <div class="num">2</div>
+      <div>
+        <h3>第二天</h3>
+        <div class="meta">关键词：不赶路 · 半天景点 · 午睡后返程</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="slot">
+        <div class="time">08:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>酒店早餐 + 收拾退房寄存 <span class="pill tip">提示</span></h4>
+          <p>从容吃早餐，退房后把行李寄存前台，轻装游览。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">09:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>上午景点二选一 <span class="pill move">代步</span></h4>
+          <p><strong>方案A（推荐 · 轻松）蠡园：</strong>小巧精致的太湖园林，半天逛完，亭台水景适合拍照，平坦好推车，长辈孩子都不累。</p>
+          <p><strong>方案B（禅意度假）拈花湾小镇：</strong>禅意建筑+太湖边度假感，环境好但距市区较远（车程约40分钟）、面积大需多走，更适合天气好、宝宝状态佳时去。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">12:00</div><div class="dot"></div>
+        <div class="body">
+          <h4>午餐 · 再尝一次无锡味 <span class="pill food">美食</span></h4>
+          <p>可去 <strong>三凤桥</strong>（酱排骨老字号）或商场餐厅（有空调、有儿童椅、出餐快）。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">13:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>取行李 + 前往无锡站 <span class="pill move">交通</span></h4>
+          <p>预留充足时间打车到高铁站，带娃带老人提前 40–50 分钟到站。</p>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="time">15:30</div><div class="dot"></div>
+        <div class="body">
+          <h4>乘高铁返回上海 <span class="pill baby">补觉</span></h4>
+          <p>下午车次正好让宝宝在车上午睡补觉，约 1 小时抵沪，结束愉快旅程。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>弹性建议：</strong>若宝宝/长辈较累，Day2 可只安排「酒店附近商场/公园 + 午餐 + 返程」，把休息放第一位。
+      </div>
+    </div>
+  </section>
+
+  <!-- 美食 -->
+  <section id="food">
+    <h2 class="sec">六、无锡美食地图</h2>
+    <div class="card">
+      <table>
+        <tr><th>必尝</th><th>说明</th><th>适合宝宝？</th></tr>
+        <tr><td>无锡小笼包</td><td>皮薄汁多偏甜，代表名片</td><td>可少量（注意烫、别给整个）</td></tr>
+        <tr><td>无锡酱排骨</td><td>三凤桥老字号最有名，色红味甜</td><td>偏甜偏咸，宝宝不宜</td></tr>
+        <tr><td>太湖三白（白鱼/白虾/银鱼）</td><td>太湖时令河鲜，鲜美</td><td>银鱼蒸蛋可给宝宝（注意刺）</td></tr>
+        <tr><td>无锡馄饨 / 阳春面</td><td>清爽好消化</td><td>✅ 较适合宝宝</td></tr>
+        <tr><td>玉兰饼 / 海棠糕 / 梅花糕</td><td>古镇街头小吃</td><td>大人尝鲜，宝宝少量</td></tr>
+      </table>
+      <div class="callout baby">
+        <strong>宝宝餐原则：</strong>无锡菜整体<strong>偏甜偏油</strong>，给宝宝务必<strong>单独点清淡的白粥、软烂面条、蒸蛋、清蒸鱼/蔬菜</strong>，并自带宝宝餐具、围兜、辅食/米粉作为兜底。
+      </div>
+    </div>
+  </section>
+
+  <!-- 宝宝 -->
+  <section id="baby">
+    <h2 class="sec">七、16个月宝宝专属照护</h2>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h4>作息与节奏</h4>
+          <ul class="clean">
+            <li>保持平时的<strong>吃饭、午睡、夜睡时间</strong>，景点为作息让路。</li>
+            <li>每天 1 次午睡雷打不动，行程围绕午睡安排。</li>
+            <li>景点间隔留出 <strong>喂食/喝水/换尿布</strong> 缓冲时间。</li>
+          </ul>
+          <h4>喂养</h4>
+          <ul class="clean">
+            <li>自带 <strong>奶粉/常喝的奶、保温杯、辅食/米粉、宝宝零食</strong>。</li>
+            <li>酒店用热水壶冲奶；外出带 <strong>保温壶装温水</strong>。</li>
+            <li>带 <strong>便携餐椅带（绑椅子）或自带围兜餐具</strong>。</li>
+          </ul>
+        </div>
+        <div>
+          <h4>出行装备</h4>
+          <ul class="clean">
+            <li>轻便伞车 + 背带/腰凳（应对石阶、人多）。</li>
+            <li>尿布、湿巾、隔尿垫、备用衣物 2 套、防走失带。</li>
+            <li>遮阳帽、薄外套（太湖边风大、室内空调凉）。</li>
+          </ul>
+          <h4>安全与健康</h4>
+          <ul class="clean">
+            <li><span class="pill warn">水边</span>鼋头渚、蠡园近水，<strong>全程牵好/抱好，绝不让宝宝独自靠近水边栏杆</strong>。</li>
+            <li>车上用<strong>儿童安全座椅</strong>，不抱着坐。</li>
+            <li>带<strong>退烧药（美林/泰诺林）、体温计、创可贴、防蚊液、护臀膏、口服补液盐</strong>。</li>
+            <li>记录宝宝<strong>体重对应的药物剂量</strong>，并存好就近儿童医院位置。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout warn">
+        <strong>母婴设施：</strong>大型景点游客中心、商场（万达/恒隆等）一般有母婴室，可换尿布/喂奶。出行前在地图 App 搜「母婴室」标记备用。
+      </div>
+    </div>
+  </section>
+
+  <!-- 长辈 -->
+  <section id="elder">
+    <h2 class="sec">八、长辈（父亲）关怀</h2>
+    <div class="card">
+      <ul class="clean">
+        <li><span class="pill elder">体力</span>每天景点 1–2 个，午休充分，<strong>多坐电瓶车/游船代步</strong>，避免连续走路超过 1 小时。</li>
+        <li><span class="pill elder">用药</span>提前备好父亲的<strong>常用慢性病药物（按 3 天量带足）</strong>，随身携带，不放托运/大行李。</li>
+        <li><span class="pill elder">健康卡</span>带好<strong>身份证、医保卡、既往病史/过敏记录</strong>小纸条，紧急时医生可快速了解。</li>
+        <li><span class="pill elder">饮食</span>无锡菜偏甜，若长辈有<strong>三高/糖尿病</strong>，点餐避开甜口浓油菜（酱排骨、糖醋等），多点清蒸蔬菜。</li>
+        <li><span class="pill elder">舒适</span>住低楼层近电梯房、备<strong>防滑拖鞋</strong>；带一双<strong>舒适防滑的鞋</strong>。</li>
+        <li><span class="pill elder">分工</span>抱娃、推车、提行李的体力活由年轻人承担，让父亲专心享受旅程、帮忙看护宝宝即可。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 行李 -->
+  <section id="pack">
+    <h2 class="sec">九、行李清单（可勾选）</h2>
+    <div class="card">
+      <h4>👶 宝宝</h4>
+      <div class="checklist">
+        <label><input type="checkbox"> 尿布（按天数 ×1.5）、湿巾</label>
+        <label><input type="checkbox"> 奶粉/奶、奶瓶、保温杯</label>
+        <label><input type="checkbox"> 辅食/米粉、宝宝零食、餐具围兜</label>
+        <label><input type="checkbox"> 换洗衣物 ×2-3 套、薄外套</label>
+        <label><input type="checkbox"> 隔尿垫、口水巾、安抚玩具/绘本</label>
+        <label><input type="checkbox"> 伞车 + 背带/腰凳</label>
+        <label><input type="checkbox"> 儿童安全座椅（便携）</label>
+        <label><input type="checkbox"> 退烧药、体温计、护臀膏、防蚊液</label>
+        <label><input type="checkbox"> 遮阳帽、防走失带</label>
+      </div>
+      <h4 style="margin-top:18px;">👨‍👩‍👴 成人 / 长辈</h4>
+      <div class="checklist">
+        <label><input type="checkbox"> 身份证 ×4（宝宝带户口本/出生证）</label>
+        <label><input type="checkbox"> 父亲常用药（足量）+ 医保卡</label>
+        <label><input type="checkbox"> 充电宝、数据线、插线板</label>
+        <label><input type="checkbox"> 雨伞/雨衣、防晒、墨镜</label>
+        <label><input type="checkbox"> 舒适防滑鞋、薄外套</label>
+        <label><input type="checkbox"> 现金少量 + 手机支付</label>
+        <label><input type="checkbox"> 常备药（肠胃/感冒/创可贴）</label>
+        <label><input type="checkbox"> 高铁票 / 酒店订单截图</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- 预算 -->
+  <section id="budget">
+    <h2 class="sec">十、费用预算（4 人参考）</h2>
+    <div class="card">
+      <table>
+        <tr><th>项目</th><th>明细</th><th>预估（元）</th></tr>
+        <tr><td>往返高铁</td><td>3 大人 ×2 程（宝宝免票），二等座</td><td>¥400 – 500</td></tr>
+        <tr><td>住宿</td><td>亲子酒店家庭房 1 晚</td><td>¥400 – 800</td></tr>
+        <tr><td>景点门票</td><td>鼋头渚约¥90/人、蠡园约¥45/人（宝宝免票，可买套票更省）</td><td>¥350 – 450</td></tr>
+        <tr><td>餐饮</td><td>3 正餐 + 小吃（含宝宝餐）</td><td>¥400 – 600</td></tr>
+        <tr><td>市内交通</td><td>打车/网约车若干程</td><td>¥150 – 250</td></tr>
+        <tr><td>园内代步</td><td>鼋头渚电瓶车/游船等</td><td>¥80 – 150</td></tr>
+        <tr><td>机动/纪念品</td><td>预留</td><td>¥200</td></tr>
+        <tr><td><span class="budget-total">合计</span></td><td>两天一夜 4 人（含宝宝）</td><td><span class="budget-total">约 ¥1,980 – 2,950</span></td></tr>
+      </table>
+      <p class="note">* 以上为参考区间，淡旺季、酒店档次、车次席别不同会有浮动。门票价格以景区官方实时公示为准，出行前请再次核对。</p>
+    </div>
+  </section>
+
+  <!-- 应急 -->
+  <section id="emergency">
+    <h2 class="sec">十一、应急与实用信息</h2>
+    <div class="card">
+      <table>
+        <tr><th>用途</th><th>电话 / 说明</th></tr>
+        <tr><td>急救</td><td>120</td></tr>
+        <tr><td>报警</td><td>110</td></tr>
+        <tr><td>火警</td><td>119</td></tr>
+        <tr><td>交通事故</td><td>122</td></tr>
+        <tr><td>旅游/消费投诉</td><td>12345（市民服务热线）</td></tr>
+        <tr><td>儿童就医</td><td>提前在地图搜「无锡市儿童医院 / 妇幼保健院」并收藏，记下离酒店最近的综合医院儿科</td></tr>
+      </table>
+      <div class="callout warn">
+        <strong>带娃带老人出行务必做的 3 件事：</strong>① 出发前给宝宝和父亲买好<strong>短期旅行/意外保险</strong>；② 手机存好<strong>酒店地址、就近医院、家人紧急联系人</strong>；③ 给宝宝和长辈口袋放一张写有<strong>姓名+监护人电话+过敏史</strong>的小卡片，防走失。
+      </div>
+    </div>
+  </section>
+
+  <!-- 备选 -->
+  <section id="planB">
+    <h2 class="sec">十二、备选 / 雨天 / 应变方案</h2>
+    <div class="card">
+      <ul class="clean">
+        <li><span class="pill tip">下雨</span>改去<strong>室内：无锡博物院（免费）、大型商场（万达/恒隆，有母婴室+儿童乐园）、海底世界类室内场馆</strong>，避免太湖户外暴晒/淋雨。</li>
+        <li><span class="pill tip">太累</span>砍掉 Day2 上午景点，改为<strong>酒店周边公园散步 + 早返程</strong>，把休息放第一位。</li>
+        <li><span class="pill tip">天气炎热</span>把户外景点放在<strong>上午 9–11 点、傍晚 16–18 点</strong>，正午回酒店避暑午休。</li>
+        <li><span class="pill tip">宝宝状态差</span>当天发烧/肠胃不适，<strong>立即就近就医并优先休息</strong>，行程随时可调整或缩短。</li>
+        <li><span class="pill tip">替代景点</span>若不去鼋头渚/蠡园，可选 <strong>动物园太湖欢乐园（小朋友喜欢）、惠山泥人厂体验</strong> 等亲子项目。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>祝你们一家四口在无锡玩得开心、平安顺利！🌸</p>
+    <p class="note">本行程为参考建议，所有时间均为弹性安排，请以宝宝与长辈的实际状态为第一优先级。出行前请核实最新车次、票价、景区开放与天气信息。</p>
+  </footer>
+
+</div>
+</body>
+</html>
