@@ -148,6 +148,14 @@
 
   .budget-total { font-size: 18px; font-weight: 800; color: var(--accent); }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 50px; }
+  @media print {
+    body { background: #fff; }
+    header.hero, nav.toc { display: none; }
+    .wrap { max-width: 100%; padding: 0; }
+    section { margin-top: 16px; page-break-inside: avoid; }
+    .card { box-shadow: none; border: 1px solid var(--line); }
+    a { color: inherit; text-decoration: none; }
+  }
   .note { font-size: 12.5px; color: var(--muted); }
   a.link { color: var(--primary); }
 </style>
@@ -171,6 +179,7 @@
   <nav class="toc">
     <h2>快速导航</h2>
     <ul>
+      <li><a href="#cheatsheet">⭐ 一页纸速查</a></li>
       <li><a href="#overview">行程总览</a></li>
       <li><a href="#transport">交通方案</a></li>
       <li><a href="#tickets">景区门票&预约</a></li>
@@ -186,6 +195,30 @@
       <li><a href="#planB">备选/雨天方案</a></li>
     </ul>
   </nav>
+
+  <!-- 一页纸速查清单 -->
+  <section id="cheatsheet">
+    <h2 class="sec">⭐ 一页纸速查（出门带这张就够）</h2>
+    <div class="card">
+      <table>
+        <tr><th>项目</th><th>关键信息</th></tr>
+        <tr><td><strong>日期</strong></td><td>6/6（周六）去 · 6/7（周日）回 · 一家 4 口（3 大人 + 16 个月宝宝）</td></tr>
+        <tr><td><strong>去程高铁</strong></td><td><strong>G7054 上海站 08:35 → 无锡站 09:16</strong>（约 41 分）· <strong>约 07:10 出门</strong></td></tr>
+        <tr><td><strong>返程高铁</strong></td><td>无锡站 <strong>15:00–15:30 发、到上海站</strong>（约 30–50 分）· 14:20–14:40 到站 · <span class="note">筛选"到达上海站"</span></td></tr>
+        <tr><td><strong>酒店</strong></td><td><strong>无锡君来世尊饭店</strong>（滨湖区和风路111号）· <strong>2 间相邻房</strong>（父亲1间 + 你们带娃1间加婴儿床）· 电话 <strong>+86 510-8528-5888</strong></td></tr>
+        <tr><td><strong>景区预约</strong><br>(出发前一晚约好)</td><td><strong>鼋头渚</strong> ¥90/人 公众号"无锡市太湖鼋头渚风景区"（8:30–16:00，16点停止入园）<br><strong>蠡园</strong> ¥30/人 公众号"游太湖明珠"（7:00–17:30）<br>均<strong>实名购票、刷身份证入园</strong>；惠山古镇免费不用约</td></tr>
+        <tr><td><strong>每餐去哪</strong></td><td>Day1 午：<strong>王兴记</strong>(中山路)｜Day1 晚：<strong>锡香记</strong>(南长街·永乐路11号)＋运河夜景｜Day2 早：酒店含早｜Day2 午：<strong>穆桂英</strong>(南禅寺)/商场</td></tr>
+        <tr><td><strong>玩法主线</strong></td><td>Day1：惠山古镇→午餐→酒店小睡→<strong>鼋头渚(14:30入园·电瓶车+游船代步)</strong>→南长街晚餐夜景<br>Day2：酒店早餐→<strong>蠡园</strong>→午餐→返沪</td></tr>
+        <tr><td><strong>必带证件</strong></td><td><strong>全家身份证原件</strong>（购票实名+父亲60+优惠核验）· 宝宝带户口本/出生证</td></tr>
+        <tr><td><strong>带娃关键</strong></td><td>便携伞车+背带 · <strong>便携床护栏</strong>(酒店不一定有) · 便携安全座椅 · 退烧药/护臀膏 · 宝宝清淡餐自备兜底</td></tr>
+        <tr><td><strong>应急电话</strong></td><td>急救 <strong>120</strong> · 报警 <strong>110</strong> · 鼋头渚咨询 0510-96889688 · 就近搜"无锡市儿童医院"</td></tr>
+        <tr><td><strong>预算</strong></td><td>经济约 <strong>¥2,800</strong> / 舒适约 <strong>¥4,400</strong>（4 人含 2 间房）</td></tr>
+      </table>
+      <div class="callout warn">
+        <strong>出发前一晚 5 件事：</strong>① 12306 买好去/返高铁（登记宝宝）；② 公众号约好鼋头渚(6/6)+蠡园(6/7)；③ 携程订君来世尊 2 间相邻房+备注加婴儿床，并打前台确认；④ 装好全家身份证+便携床护栏+宝宝药品；⑤ 大众点评给锡香记取号/收藏。
+      </div>
+    </div>
+  </section>
 
   <!-- 总览 -->
   <section id="overview">
