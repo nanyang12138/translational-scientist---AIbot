@@ -88,6 +88,8 @@ assert.match(bridgeScript, /buildAzureOpenAIRequest/);
 assert.match(bridgeScript, /callOllama/);
 assert.match(bridgeScript, /LLM_GATEWAY_SUBSCRIPTION_KEY/);
 assert.match(bridgeScript, /LLM_CHAT_COMPLETIONS_PATH/);
+assert.match(bridgeScript, /LLM_USE_DEPLOYMENT_PATH/);
+assert.match(bridgeScript, /LLM_DEPLOYMENT_PATH_TEMPLATE/);
 
 const gatewayTestScript = await read("tools/test_llm_gateway.mjs");
 assert.match(gatewayTestScript, /diagnoseNetworkError/);

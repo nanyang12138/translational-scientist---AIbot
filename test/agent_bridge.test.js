@@ -100,6 +100,9 @@ test("agent bridge builds AMD-style OpenAI-compatible gateway request", () => {
     "LLM_DISABLE_RESPONSE_FORMAT",
     "LLM_CHAT_COMPLETIONS_PATH",
     "LLM_CHAT_COMPLETIONS_URL",
+    "LLM_USE_DEPLOYMENT_PATH",
+    "LLM_DEPLOYMENT_PATH_TEMPLATE",
+    "LLM_ENABLE_RESPONSE_FORMAT",
   ]);
   Object.assign(process.env, {
     LLM_PROVIDER: "gateway",
@@ -148,6 +151,48 @@ test("agent bridge supports chat completions path and full URL overrides", () =>
 
   assert.equal(pathRequest.url, "https://gateway.example.com/root/v1/chat/completions");
   assert.equal(fullUrlRequest.url, "https://gateway.example.com/custom/chat");
+});
+
+test("agent bridge supports deployment-style gateway URLs for gpt-5 models", () => {
+  const previous = snapshotEnv([
+    "LLM_PROVIDER",
+    "LLM_BASE_URL",
+    "LLM_API_KEY",
+    "LLM_MODEL",
+    "LLM_USE_DEPLOYMENT_PATH",
+    "LLM_DEPLOYMENT_PATH_TEMPLATE",
+    "LLM_TEMPERATURE",
+    "LLM_ENABLE_RESPONSE_FORMAT",
+  ]);
+  Object.assign(process.env, {
+    LLM_PROVIDER: "gateway",
+    LLM_BASE_URL: "https://llm-api.example.com/OnPrem",
+    LLM_API_KEY: "dummy",
+    LLM_MODEL: "gpt-5.5",
+    LLM_USE_DEPLOYMENT_PATH: "1",
+  });
+
+  const defaultDeploymentRequest = buildOpenAICompatibleRequest({ oracle: "测试", game: {}, provider: "gateway" });
+  const defaultBody = JSON.parse(defaultDeploymentRequest.init.body);
+  process.env.LLM_DEPLOYMENT_PATH_TEMPLATE = "vertex/gemini/deployments/{model}/chat/completions";
+  const customDeploymentRequest = buildOpenAICompatibleRequest({
+    oracle: "测试",
+    game: {},
+    model: "gemini-2.5-flash",
+    provider: "gateway",
+  });
+  restoreEnv(previous);
+
+  assert.equal(
+    defaultDeploymentRequest.url,
+    "https://llm-api.example.com/OnPrem/openai/deployments/gpt-5.5/chat/completions"
+  );
+  assert.equal(defaultBody.temperature, 1);
+  assert.equal(defaultBody.response_format, undefined);
+  assert.equal(
+    customDeploymentRequest.url,
+    "https://llm-api.example.com/OnPrem/vertex/gemini/deployments/gemini-2.5-flash/chat/completions"
+  );
 });
 
 test("agent bridge builds Azure OpenAI deployment request", () => {

@@ -113,6 +113,30 @@ LLM_CHAT_COMPLETIONS_PATH=v1/chat/completions
 LLM_CHAT_COMPLETIONS_URL=https://llm-api.example.com/OnPrem/chat/completions
 ```
 
+如果网关像某些 OpenAI deployments API 一样使用:
+
+```text
+{SERVER}/openai/deployments/{model}/chat/completions
+```
+
+可以设置:
+
+```bash
+LLM_USE_DEPLOYMENT_PATH=1
+```
+
+如果是 Gemini/Vertex 类似路径:
+
+```bash
+LLM_DEPLOYMENT_PATH_TEMPLATE=vertex/gemini/deployments/{model}/chat/completions
+```
+
+`gpt-5*` 模型会默认使用 `temperature=1.0`,并默认不发送 `response_format`; 如你的网关支持 JSON mode,可显式设置:
+
+```bash
+LLM_ENABLE_RESPONSE_FORMAT=1
+```
+
 诊断 gateway 连通性:
 
 ```bash

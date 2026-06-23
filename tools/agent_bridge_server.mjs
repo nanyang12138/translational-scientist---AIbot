@@ -176,7 +176,7 @@ export function buildOpenAICompatibleRequest({ oracle = "test", game = {}, model
   };
   const body = buildChatCompletionBody({ oracle, game, model });
   return {
-    url: resolveChatCompletionsUrl(baseUrl),
+    url: resolveChatCompletionsUrl(baseUrl, model),
     init: {
       method: "POST",
       headers,
@@ -238,9 +238,10 @@ async function callAzureOpenAI({ oracle, game, model }) {
 }
 
 function buildChatCompletionBody({ oracle, game, model }) {
+  const isGpt5 = /^gpt-5/i.test(String(model));
   const body = {
     model,
-    temperature: Number(process.env.LLM_TEMPERATURE ?? 0.9),
+    temperature: Number(process.env.LLM_TEMPERATURE ?? (isGpt5 ? 1.0 : 0.9)),
     messages: buildMessages({ oracle, game }),
   };
 
@@ -253,7 +254,8 @@ function buildChatCompletionBody({ oracle, game, model }) {
     }
   }
 
-  if (process.env.LLM_DISABLE_RESPONSE_FORMAT !== "1") {
+  const disableResponseFormat = process.env.LLM_DISABLE_RESPONSE_FORMAT === "1" || (isGpt5 && process.env.LLM_ENABLE_RESPONSE_FORMAT !== "1");
+  if (!disableResponseFormat) {
     body.response_format = { type: "json_object" };
   }
 
@@ -299,12 +301,22 @@ function joinUrl(baseUrl, suffix) {
   return `${String(baseUrl).replace(/\/$/, "")}/${suffix.replace(/^\//, "")}`;
 }
 
-function resolveChatCompletionsUrl(baseUrl) {
+function resolveChatCompletionsUrl(baseUrl, model) {
   if (process.env.LLM_CHAT_COMPLETIONS_URL) {
     return process.env.LLM_CHAT_COMPLETIONS_URL;
   }
+  if (process.env.LLM_DEPLOYMENT_PATH_TEMPLATE) {
+    return joinUrl(baseUrl, expandDeploymentTemplate(process.env.LLM_DEPLOYMENT_PATH_TEMPLATE, model));
+  }
+  if (process.env.LLM_USE_DEPLOYMENT_PATH === "1") {
+    return joinUrl(baseUrl, expandDeploymentTemplate("openai/deployments/{model}/chat/completions", model));
+  }
   const path = process.env.LLM_CHAT_COMPLETIONS_PATH || "chat/completions";
   return joinUrl(baseUrl, path);
+}
+
+function expandDeploymentTemplate(template, model) {
+  return String(template).replaceAll("{model}", encodeURIComponent(model));
 }
 
 async function callOllama({ oracle, game, model }) {
