@@ -12,7 +12,13 @@ var screen_root: Control
 var oracle_input: TextEdit
 var status_label: Label
 var llm_enabled := false
+var llm_mode := "bridge"
 var llm_endpoint := "http://127.0.0.1:8787/resolve"
+var amd_base_url := "https://llm-api.amd.com/OpenAI"
+var amd_model := "gpt-5.5"
+var amd_subscription_key := ""
+var amd_user := ""
+var amd_placeholder_key := "placeholder-key"
 var llm_request_in_flight := false
 
 var palette := {
@@ -135,13 +141,19 @@ func _show_settings() -> void:
 		"发行: Windows/macOS/Linux 导出预设、Steam capsule、trailer、手柄适配。"
 	]))
 	layout.add_child(_label("LLM Agent Bridge", 28, palette.gold))
-	layout.add_child(_label("开启后,游戏会调用本机 Agent Bridge 生成更活的阵营行动、阴谋和 NPC 记忆; 本地规则引擎仍负责校验和结算。", 18, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+	layout.add_child(_label("开启后,游戏会调用本机 Agent Bridge 或直接请求 AMD LLM Gateway,生成更活的阵营行动、阴谋和 NPC 记忆; 本地规则引擎仍负责校验和结算。", 18, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
 	var llm_toggle := CheckButton.new()
 	llm_toggle.text = "启用 LLM Agent 模式"
 	llm_toggle.button_pressed = llm_enabled
 	llm_toggle.add_theme_font_size_override("font_size", 20)
 	llm_toggle.add_theme_color_override("font_color", palette.text)
 	layout.add_child(llm_toggle)
+	var mode_select := OptionButton.new()
+	mode_select.add_item("本地 Agent Bridge", 0)
+	mode_select.add_item("直连 AMD LLM Gateway", 1)
+	mode_select.selected = 1 if llm_mode == "direct_amd" else 0
+	mode_select.add_theme_font_size_override("font_size", 18)
+	layout.add_child(mode_select)
 	var endpoint_input := LineEdit.new()
 	endpoint_input.text = llm_endpoint
 	endpoint_input.placeholder_text = "http://127.0.0.1:8787/resolve"
@@ -149,9 +161,25 @@ func _show_settings() -> void:
 	endpoint_input.add_theme_color_override("font_color", palette.text)
 	endpoint_input.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.065), 14))
 	layout.add_child(endpoint_input)
+	layout.add_child(_label("AMD Gateway 登录入口", 24, palette.gold))
+	layout.add_child(_label("密钥只保存在本次游戏运行内存中,不会写入存档或仓库。AMD OpenAI/GPT endpoint 默认是 https://llm-api.amd.com/OpenAI。", 16, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+	var amd_base_input := _line_edit(amd_base_url, "https://llm-api.amd.com/OpenAI")
+	layout.add_child(amd_base_input)
+	var amd_model_input := _line_edit(amd_model, "gpt-5.5")
+	layout.add_child(amd_model_input)
+	var amd_key_input := _line_edit(amd_subscription_key, "AMD_LLM_GATEWAY_KEY / Ocp-Apim-Subscription-Key")
+	amd_key_input.secret = true
+	layout.add_child(amd_key_input)
+	var amd_user_input := _line_edit(amd_user, "user header, 例如你的 AMD 用户名")
+	layout.add_child(amd_user_input)
 	layout.add_child(_small_button("保存 LLM 设置", func():
 		llm_enabled = llm_toggle.button_pressed
+		llm_mode = "direct_amd" if mode_select.selected == 1 else "bridge"
 		llm_endpoint = endpoint_input.text.strip_edges()
+		amd_base_url = amd_base_input.text.strip_edges()
+		amd_model = amd_model_input.text.strip_edges()
+		amd_subscription_key = amd_key_input.text.strip_edges()
+		amd_user = amd_user_input.text.strip_edges()
 		_show_main_menu()
 	))
 	layout.add_child(_menu_button("返回主菜单", func(): _show_main_menu()))
@@ -210,7 +238,8 @@ func _build_top_bar() -> Control:
 	title.add_child(_eyebrow("OLD GOD CONSOLE / %s" % game.city_name))
 	title.add_child(_label("回合 %d" % int(game.turn), 32, palette.text))
 
-	var mode_text := "LLM Agent: ON" if llm_enabled else "Local Rules: ON"
+	var mode_name := "Direct AMD" if llm_mode == "direct_amd" else "Bridge"
+	var mode_text := "LLM Agent: %s" % mode_name if llm_enabled else "Local Rules: ON"
 	status_label = _label("%s / 控制台等待神谕。" % mode_text, 18, palette.muted)
 	row.add_child(status_label)
 	var llm_button := _small_button("LLM 开关", func():
@@ -234,7 +263,7 @@ func _build_command_deck() -> Control:
 	layout.add_theme_constant_override("separation", 12)
 	panel.add_child(layout)
 	layout.add_child(_eyebrow("ISSUE ORACLE"))
-	var mode_hint := "当前: LLM Agent Bridge 会生成活的阴谋,本地规则引擎负责校验。" if llm_enabled else "当前: 离线规则 agent。可在设置里开启 LLM Agent Bridge。"
+	var mode_hint := "当前: %s 会生成活的阴谋,本地规则引擎负责校验。" % ("直连 AMD Gateway" if llm_mode == "direct_amd" else "LLM Agent Bridge") if llm_enabled else "当前: 离线规则 agent。可在设置里开启 LLM Agent。"
 	layout.add_child(_label("每回合只能说一句话。越模糊,越容易被世界利用。%s" % mode_hint, 20, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
 
 	oracle_input = TextEdit.new()
@@ -268,8 +297,18 @@ func _submit_oracle() -> void:
 	oracle_input.editable = false
 	if llm_enabled:
 		llm_request_in_flight = true
-		_show_status("正在等待 LLM Agent Bridge 回应...", false)
-		var agent_result: Dictionary = await llm_client.resolve_oracle(get_tree().root, llm_endpoint, text, game)
+		_show_status("正在等待 %s 回应..." % ("AMD LLM Gateway" if llm_mode == "direct_amd" else "LLM Agent Bridge"), false)
+		var agent_result: Dictionary
+		if llm_mode == "direct_amd":
+			agent_result = await llm_client.resolve_oracle_direct_openai(get_tree().root, {
+				"base_url": amd_base_url,
+				"model": amd_model,
+				"subscription_key": amd_subscription_key,
+				"user": amd_user,
+				"placeholder_key": amd_placeholder_key
+			}, text, game)
+		else:
+			agent_result = await llm_client.resolve_oracle(get_tree().root, llm_endpoint, text, game)
 		llm_request_in_flight = false
 		if bool(agent_result.get("ok", false)):
 			game = engine.resolve_oracle_with_agent(game, text, agent_result)
@@ -523,6 +562,17 @@ func _eyebrow(text: String) -> Label:
 	var label := _label(text, 13, palette.cyan)
 	label.uppercase = true
 	return label
+
+
+func _line_edit(text: String, placeholder: String) -> LineEdit:
+	var input := LineEdit.new()
+	input.text = text
+	input.placeholder_text = placeholder
+	input.add_theme_font_size_override("font_size", 18)
+	input.add_theme_color_override("font_color", palette.text)
+	input.add_theme_color_override("font_placeholder_color", palette.muted)
+	input.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.065), 14))
+	return input
 
 
 func _menu_button(text: String, callback: Callable) -> Button:

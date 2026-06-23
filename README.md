@@ -202,6 +202,25 @@ LLM_PROVIDER=ollama LLM_MODEL=llama3.1 npm run start:agent
 - bridge 失败时游戏自动回退离线规则 agent。
 - 不要把真实 API key 或 subscription key 写入仓库; 通过环境变量或 Windows 启动脚本输入。
 
+### 游戏内直接登录 AMD Gateway
+
+也可以不启动 Node bridge,直接在游戏内配置:
+
+1. 打开 `God Is Offline.exe`
+2. 进入 `设置 / 发行规格`
+3. 开启 `LLM Agent 模式`
+4. 模式选择 `直连 AMD LLM Gateway`
+5. 填入:
+
+```text
+Base URL: https://llm-api.amd.com/OpenAI
+Model: gpt-5.5
+Subscription Key: <your AMD_LLM_GATEWAY_KEY>
+User: <your AMD user>
+```
+
+然后回到游戏发布神谕。密钥只保存在本次游戏运行内存中,不会写入存档; 关闭游戏后需要重新输入。
+
 ### 从 Godot 编辑器运行
 
 安装 Godot 4.2+ 后打开:

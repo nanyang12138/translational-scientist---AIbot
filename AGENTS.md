@@ -9,7 +9,7 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - **Primary game project**: `godot/` is a Godot 4.2+ desktop game project.
 - **Reference prototype**: vanilla HTML/CSS/JavaScript ES modules in `index.html` and `src/`.
 - **Dependencies**: none beyond Node.js and Python 3 available in the environment.
-- **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime plus LLM-output validation/merge; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/llm_agent_client.gd` calls the local Agent Bridge; `godot/scripts/save_system.gd` handles local saves.
+- **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime plus LLM-output validation/merge; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/llm_agent_client.gd` calls either the local Agent Bridge or a direct AMD/OpenAI-compatible endpoint; `godot/scripts/save_system.gd` handles local saves.
 - **Godot data**: `godot/data/game_config.json` and `godot/data/factions.json`.
 - **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for AMD LLM Gateway OpenAI endpoint (`amd-openai`), OpenAI-compatible APIs, custom gateway/LLM Gate endpoints, Azure OpenAI, Ollama, or mock mode. This keeps API keys out of the Godot client.
 - **Tests/validation**: `test/game.test.js` uses Node's built-in test runner for the JS reference runtime; `tools/validate_godot_project.mjs` validates Godot project structure and data.
@@ -42,6 +42,8 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
   ```
 
   `amd-openai` defaults to `https://llm-api.amd.com/OpenAI`, model `gpt-5.5`, and `placeholder-key`; it does not reuse `OPENAI_API_KEY` or `LLM_API_KEY`.
+
+  The Godot settings screen also has a direct AMD Gateway login path. It asks for base URL, model, subscription key, and user header, then calls the OpenAI-compatible endpoint directly from the game. The key is runtime-only and is not saved.
 
   Or with Ollama:
 
