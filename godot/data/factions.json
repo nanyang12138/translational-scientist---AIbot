@@ -1,0 +1,98 @@
+[
+  {
+    "id": "council",
+    "name": "市政厅",
+    "color": "#8FB6FF",
+    "voice": "秩序必须看起来仍然存在。",
+    "base_action": "把神谕写成紧急行政令,并要求所有街区登记执行结果",
+    "distortion": "把神的意思解释成授权临时管制",
+    "stat_deltas": { "order": 9, "unrest": -3, "freedom": -7, "faith": 2 },
+    "triggers": {
+      "food": { "action": "征用富人区粮仓,再把配给权交给区长", "deltas": { "hunger": -16, "unrest": 7, "order": 4, "inequality": 5 } },
+      "truth": { "action": "成立影子审查局,要求所有证词在强光下完成", "deltas": { "secrecy": -7, "freedom": -10, "paranoia": 11, "order": 3 } },
+      "equality": { "action": "宣布所有阶层头衔暂停使用,但保留财产登记", "deltas": { "inequality": -6, "order": 3, "unrest": 4 } },
+      "death": { "action": "以防止流血为名扩大宵禁范围", "deltas": { "unrest": -4, "freedom": -9, "paranoia": 6 } },
+      "children": { "action": "把儿童保护改造成强制收容计划", "deltas": { "faith": 3, "freedom": -6, "unrest": 6 } }
+    }
+  },
+  {
+    "id": "church",
+    "name": "圣玻璃教会",
+    "color": "#FFD36E",
+    "voice": "神谕不是政策,是解释权。",
+    "base_action": "宣布神终于重新开口,并收集所有人的祈祷誓言",
+    "distortion": "把模糊处解释成教会拥有唯一译本",
+    "stat_deltas": { "faith": 12, "order": 2, "secrecy": 4, "freedom": -3 },
+    "triggers": {
+      "food": { "action": "把面包做成圣餐,优先发给愿意受洗的人", "deltas": { "hunger": -8, "faith": 10, "inequality": 4, "unrest": 3 } },
+      "truth": { "action": "审判无影者与长影者,把光源放进圣坛", "deltas": { "faith": 8, "paranoia": 12, "secrecy": -3, "unrest": 4 } },
+      "equality": { "action": "宣称所有人在神前平等,但神职人员更接近神", "deltas": { "faith": 7, "inequality": -3, "unrest": 2 } },
+      "death": { "action": "为死者建立公开忏悔墙", "deltas": { "faith": 6, "paranoia": 4, "unrest": -2 } },
+      "faith": { "action": "把这句神谕刻上穹顶,要求城市每日复诵", "deltas": { "faith": 15, "freedom": -5, "order": 4 } }
+    }
+  },
+  {
+    "id": "merchants",
+    "name": "金线商会",
+    "color": "#FF9D6E",
+    "voice": "每个神迹都有价格。",
+    "base_action": "发行神谕期货,押注哪条街会先被祝福",
+    "distortion": "把祝福拆成可交易凭证",
+    "stat_deltas": { "wealth": 8, "inequality": 7, "unrest": 3, "faith": -1 },
+    "triggers": {
+      "food": { "action": "推出神赐粮券,让穷人用明年的劳役抵今天的面包", "deltas": { "hunger": -10, "wealth": 9, "inequality": 10, "unrest": 6 } },
+      "truth": { "action": "开设影子保险,承保说谎者被发现后的损失", "deltas": { "wealth": 7, "secrecy": 5, "paranoia": 6 } },
+      "equality": { "action": "发明平等股份,每个人都能买一小块无法兑现的未来", "deltas": { "wealth": 6, "inequality": 2, "unrest": 4 } },
+      "death": { "action": "垄断棺木、药剂和雇佣护卫", "deltas": { "wealth": 11, "inequality": 5, "unrest": 5 } },
+      "wealth": { "action": "把神谕铸成纪念币,宣布持币者受神注视", "deltas": { "wealth": 12, "faith": 3, "inequality": 6 } }
+    }
+  },
+  {
+    "id": "syndicate",
+    "name": "黑烛帮",
+    "color": "#D66EFF",
+    "voice": "混乱是一条暗巷,暗巷通向我们。",
+    "base_action": "伪造神谕副本,在夜市换取保护费",
+    "distortion": "把神的沉默解释成默许地下秩序",
+    "stat_deltas": { "secrecy": 10, "unrest": 6, "order": -7, "fear": 5 },
+    "triggers": {
+      "food": { "action": "劫走一半配给,再以神的名义低价出售", "deltas": { "hunger": -6, "secrecy": 7, "unrest": 8, "inequality": 6 } },
+      "truth": { "action": "训练说谎者控制影子长度,并出售伪证课程", "deltas": { "secrecy": 12, "paranoia": 8, "wealth": 5 } },
+      "equality": { "action": "让贵族和平民在同一个债务名单上平等", "deltas": { "inequality": -2, "unrest": 7, "secrecy": 8 } },
+      "death": { "action": "把复仇包装成神罚,清理旧敌人", "deltas": { "fear": 10, "unrest": 8, "order": -5 } },
+      "children": { "action": "保护孤儿,但训练他们成为信使", "deltas": { "secrecy": 8, "faith": 2, "unrest": 3 } }
+    }
+  },
+  {
+    "id": "revolt",
+    "name": "无冠者革命军",
+    "color": "#FF6E8E",
+    "voice": "如果神会说话,人民也必须会说话。",
+    "base_action": "把神谕印成传单,号召街区议会重写城市契约",
+    "distortion": "把每一句神谕都解释成旧秩序腐败的证据",
+    "stat_deltas": { "unrest": 10, "freedom": 6, "order": -8, "faith": -2 },
+    "triggers": {
+      "food": { "action": "占领粮仓,宣布第一块面包必须给最饿的人", "deltas": { "hunger": -14, "unrest": 9, "inequality": -7, "order": -5 } },
+      "truth": { "action": "公开官员密信,但也公布未经证实的仇敌名单", "deltas": { "secrecy": -10, "unrest": 10, "paranoia": 7, "freedom": 5 } },
+      "equality": { "action": "建立平等公社,要求贵族交出住宅", "deltas": { "inequality": -14, "unrest": 12, "order": -7, "freedom": 4 } },
+      "death": { "action": "用死者名字命名街垒,让哀悼变成动员", "deltas": { "unrest": 11, "faith": -2, "fear": 4 } },
+      "children": { "action": "让孩子朗读自由宣言,逼迫士兵不敢开枪", "deltas": { "freedom": 8, "unrest": 6, "faith": 3 } }
+    }
+  },
+  {
+    "id": "gazette",
+    "name": "棱镜公报",
+    "color": "#7FFFD4",
+    "voice": "现实不会自己传播,标题会。",
+    "base_action": "把神谕拆成七个互相矛盾的头版标题",
+    "distortion": "把不确定性做成连续报道",
+    "stat_deltas": { "paranoia": 8, "unrest": 4, "faith": 3, "secrecy": -2 },
+    "triggers": {
+      "food": { "action": "追踪第一块神赐面包,把饥饿拍成全民直播", "deltas": { "hunger": -3, "unrest": 5, "faith": 4, "paranoia": 3 } },
+      "truth": { "action": "推出影子排行榜,每天公布最可疑的十个人", "deltas": { "paranoia": 13, "secrecy": -5, "unrest": 5 } },
+      "equality": { "action": "举办谁更平等的公众辩论,让每派都觉得自己赢了", "deltas": { "unrest": 6, "faith": 2, "freedom": 3 } },
+      "death": { "action": "把每一次死亡都做成倒计时专题", "deltas": { "fear": 8, "paranoia": 5, "unrest": 4 } },
+      "faith": { "action": "开设神是否在线专栏,邀请骗子、圣徒和统计学家同台", "deltas": { "faith": 5, "paranoia": 5, "freedom": 2 } }
+    }
+  }
+]

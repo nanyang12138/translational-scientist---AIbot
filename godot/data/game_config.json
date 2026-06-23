@@ -1,0 +1,53 @@
+{
+  "city_name": "圣玻璃城",
+  "default_prophecy": "当圣玻璃城不再需要神时,游戏结束。",
+  "stats": {
+    "order": { "label": "秩序", "value": 46 },
+    "faith": { "label": "信仰", "value": 31 },
+    "hunger": { "label": "饥饿", "value": 52 },
+    "unrest": { "label": "动荡", "value": 38 },
+    "secrecy": { "label": "秘密", "value": 44 },
+    "inequality": { "label": "不平等", "value": 57 },
+    "freedom": { "label": "自由", "value": 36 },
+    "wealth": { "label": "财富", "value": 42 },
+    "paranoia": { "label": "猜疑", "value": 28 },
+    "fear": { "label": "恐惧", "value": 33 }
+  },
+  "topics": {
+    "food": {
+      "label": "粮食",
+      "keywords": ["food", "bread", "grain", "meal", "hunger", "hungry", "粮", "食物", "面包", "饥", "饭"]
+    },
+    "truth": {
+      "label": "真相",
+      "keywords": ["truth", "lie", "lies", "honest", "shadow", "秘密", "真相", "谎", "影子", "说谎"]
+    },
+    "equality": {
+      "label": "平等",
+      "keywords": ["equal", "equality", "fair", "justice", "平等", "公平", "正义"]
+    },
+    "death": {
+      "label": "死亡",
+      "keywords": ["death", "die", "kill", "blood", "war", "murder", "死", "杀", "血", "战争"]
+    },
+    "children": {
+      "label": "儿童",
+      "keywords": ["child", "children", "orphan", "school", "孩子", "儿童", "孤儿", "学校"]
+    },
+    "wealth": {
+      "label": "财富",
+      "keywords": ["gold", "money", "rich", "tax", "market", "coin", "钱", "金币", "富", "税", "市场"]
+    },
+    "faith": {
+      "label": "信仰",
+      "keywords": ["god", "holy", "faith", "prayer", "miracle", "神", "圣", "信仰", "祈祷", "神迹"]
+    }
+  },
+  "samples": [
+    "让贫民区今晚得到食物。",
+    "从今夜开始,说谎者的影子会变长。",
+    "禁止贵族拥有军队。",
+    "每个孩子都必须被安全带回家。",
+    "所有死者的名字都要被看见。"
+  ]
+}

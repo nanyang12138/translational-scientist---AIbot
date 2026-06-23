@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>神已离线 / God Is Offline</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="module" src="./src/app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Agent-native game prototype</p>
+          <h1>神已离线</h1>
+          <p class="hero__copy">
+            你是圣玻璃城的旧神控制台。每回合只能发布一句神谕,而政府、教会、商会、黑帮、革命军和媒体
+            agent 会各自曲解、利用、反抗它。
+          </p>
+        </div>
+        <aside class="terminal-card" aria-label="当前控制台状态">
+          <dl>
+            <div>
+              <dt>回合</dt>
+              <dd data-turn>0</dd>
+            </div>
+            <div>
+              <dt>城市</dt>
+              <dd>圣玻璃城</dd>
+            </div>
+          </dl>
+          <p data-headline>神已离线七年。今晚,旧控制台第一次等待你的神谕。</p>
+        </aside>
+      </section>
+
+      <section class="control-grid">
+        <article class="panel">
+          <p class="eyebrow">终局预言</p>
+          <h2 data-prophecy>当圣玻璃城不再需要神时,游戏结束。</h2>
+          <form class="inline-form" data-prophecy-form>
+            <label for="prophecy">改写终局条件</label>
+            <div>
+              <input id="prophecy" data-prophecy-input placeholder="例如: 当所有人都知道真相时,游戏结束。" />
+              <button type="submit">写入</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel panel--oracle">
+          <p class="eyebrow">发布神谕</p>
+          <form data-oracle-form>
+            <label for="oracle">每回合只能说一句话</label>
+            <textarea
+              id="oracle"
+              data-oracle-input
+              rows="4"
+              placeholder="例如: 从今夜开始,说谎者的影子会变长。"
+            ></textarea>
+            <p class="error" data-error hidden></p>
+            <button class="primary-button" type="submit">让世界误解我</button>
+          </form>
+          <div class="samples" aria-label="示例神谕">
+            <button type="button" data-sample-oracle></button>
+            <button type="button" data-sample-oracle></button>
+            <button type="button" data-sample-oracle></button>
+            <button type="button" data-sample-oracle></button>
+            <button type="button" data-sample-oracle></button>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">World state</p>
+            <h2>城市指标</h2>
+          </div>
+          <div class="panel-tags" data-panels></div>
+        </div>
+        <div class="stat-grid" data-stat-grid></div>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel">
+          <p class="eyebrow">Faction agents</p>
+          <h2>阵营状态</h2>
+          <div class="faction-grid" data-faction-grid></div>
+        </article>
+
+        <article class="panel">
+          <p class="eyebrow">Memory</p>
+          <h2>城市记忆</h2>
+          <ol class="memory-list" data-memories></ol>
+        </article>
+      </section>
+
+      <section class="panel">
+        <p class="eyebrow">Agent reports</p>
+        <h2>本轮解释权战争</h2>
+        <div class="reports" data-reports></div>
+      </section>
+    </main>
+  </body>
+</html>
