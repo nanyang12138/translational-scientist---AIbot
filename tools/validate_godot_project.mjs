@@ -56,6 +56,8 @@ assert.match(mainScript, /func _save_current_game/);
 assert.match(mainScript, /llm_agent_client\.gd/);
 assert.match(mainScript, /resolve_oracle_with_agent/);
 assert.match(mainScript, /直连 AMD LLM Gateway/);
+assert.match(mainScript, /ScrollContainer/);
+assert.match(mainScript, /Subscription Key/);
 
 const engineScript = await read("godot/scripts/oracle_engine.gd");
 assert.match(engineScript, /class_name OracleEngine/);

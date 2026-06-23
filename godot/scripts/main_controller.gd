@@ -127,9 +127,15 @@ func _show_settings() -> void:
 	var panel := _panel()
 	frame.add_child(panel)
 
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(scroll)
+
 	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_theme_constant_override("separation", 18)
-	panel.add_child(layout)
+	scroll.add_child(layout)
 	layout.add_child(_eyebrow("PRODUCTION INTENT"))
 	layout.add_child(_label("正规游戏化目标", 44, palette.text))
 	layout.add_child(_label("这一版工程按 Steam 独立游戏 vertical slice 组织: Godot 4 桌面项目、主菜单、存档、设置入口、数据驱动 agent runtime、可扩展的控制室 UI。", 20, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
@@ -154,22 +160,22 @@ func _show_settings() -> void:
 	mode_select.selected = 1 if llm_mode == "direct_amd" else 0
 	mode_select.add_theme_font_size_override("font_size", 18)
 	layout.add_child(mode_select)
-	var endpoint_input := LineEdit.new()
-	endpoint_input.text = llm_endpoint
-	endpoint_input.placeholder_text = "http://127.0.0.1:8787/resolve"
-	endpoint_input.add_theme_font_size_override("font_size", 18)
-	endpoint_input.add_theme_color_override("font_color", palette.text)
-	endpoint_input.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.065), 14))
+	layout.add_child(_field_label("Agent Bridge endpoint"))
+	var endpoint_input := _line_edit(llm_endpoint, "http://127.0.0.1:8787/resolve")
 	layout.add_child(endpoint_input)
 	layout.add_child(_label("AMD Gateway 登录入口", 24, palette.gold))
 	layout.add_child(_label("密钥只保存在本次游戏运行内存中,不会写入存档或仓库。AMD OpenAI/GPT endpoint 默认是 https://llm-api.amd.com/OpenAI。", 16, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+	layout.add_child(_field_label("Base URL"))
 	var amd_base_input := _line_edit(amd_base_url, "https://llm-api.amd.com/OpenAI")
 	layout.add_child(amd_base_input)
+	layout.add_child(_field_label("Model"))
 	var amd_model_input := _line_edit(amd_model, "gpt-5.5")
 	layout.add_child(amd_model_input)
+	layout.add_child(_field_label("Subscription Key / AMD_LLM_GATEWAY_KEY"))
 	var amd_key_input := _line_edit(amd_subscription_key, "AMD_LLM_GATEWAY_KEY / Ocp-Apim-Subscription-Key")
 	amd_key_input.secret = true
 	layout.add_child(amd_key_input)
+	layout.add_child(_field_label("User header"))
 	var amd_user_input := _line_edit(amd_user, "user header, 例如你的 AMD 用户名")
 	layout.add_child(amd_user_input)
 	layout.add_child(_small_button("保存 LLM 设置", func():
@@ -562,6 +568,10 @@ func _eyebrow(text: String) -> Label:
 	var label := _label(text, 13, palette.cyan)
 	label.uppercase = true
 	return label
+
+
+func _field_label(text: String) -> Label:
+	return _label(text, 15, palette.cyan, HORIZONTAL_ALIGNMENT_LEFT, false)
 
 
 func _line_edit(text: String, placeholder: String) -> LineEdit:
