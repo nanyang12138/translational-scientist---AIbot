@@ -126,6 +126,99 @@ func resolve_oracle_direct_openai(root: Node, settings: Dictionary, oracle: Stri
 	return agent_output
 
 
+func test_direct_openai(root: Node, settings: Dictionary) -> Dictionary:
+	var base_url: String = String(settings.get("base_url", "https://llm-api.amd.com/OpenAI")).strip_edges()
+	var model: String = String(settings.get("model", "gpt-5.5")).strip_edges()
+	var subscription_key: String = String(settings.get("subscription_key", "")).strip_edges()
+	var user_header: String = String(settings.get("user", "")).strip_edges()
+	var placeholder_key: String = String(settings.get("placeholder_key", "placeholder-key")).strip_edges()
+	if base_url.is_empty() or model.is_empty() or subscription_key.is_empty():
+		return {
+			"ok": false,
+			"message": "请先填写 Base URL、Model 和 Subscription Key。"
+		}
+
+	var endpoint: String = _join_url(base_url, "chat/completions")
+	var http := HTTPRequest.new()
+	http.timeout = DEFAULT_TIMEOUT
+	root.add_child(http)
+	var body := _build_probe_body(model)
+	var headers := [
+		"Content-Type: application/json",
+		"Authorization: Bearer %s" % (placeholder_key if not placeholder_key.is_empty() else "placeholder-key"),
+		"Ocp-Apim-Subscription-Key: %s" % subscription_key
+	]
+	if not user_header.is_empty():
+		headers.append("user: %s" % user_header)
+
+	var error := http.request(endpoint, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+	if error != OK:
+		http.queue_free()
+		return {
+			"ok": false,
+			"message": "请求未发出: %s" % error
+		}
+
+	var completed: Array = await http.request_completed
+	http.queue_free()
+	var status_code: int = int(completed[1])
+	var text: String = PackedByteArray(completed[3]).get_string_from_utf8()
+	if status_code < 200 or status_code >= 300:
+		return {
+			"ok": false,
+			"message": "HTTP %d: %s\n%s" % [status_code, _diagnose_status(status_code), text.left(220)]
+		}
+
+	var parsed = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {
+			"ok": false,
+			"message": "HTTP 200,但响应不是 JSON。"
+		}
+	var content := _extract_chat_content(parsed)
+	if content.strip_edges().is_empty():
+		return {
+			"ok": false,
+			"message": "HTTP 200,但 choices[0].message.content 为空。"
+		}
+	return {
+		"ok": true,
+		"message": "连接成功: %s 返回了内容。" % model
+	}
+
+
+func _build_probe_body(model: String) -> Dictionary:
+	var is_gpt5 := model.to_lower().begins_with("gpt-5")
+	var body := {
+		"model": model,
+		"temperature": 1.0 if is_gpt5 else 0.1,
+		"max_completion_tokens": 40,
+		"messages": [
+			{"role": "system", "content": "Reply with only OK."},
+			{"role": "user", "content": "Connectivity test"}
+		]
+	}
+	if not is_gpt5:
+		body.response_format = {"type": "json_object"}
+	return body
+
+
+func _diagnose_status(status_code: int) -> String:
+	if status_code == 400:
+		return "请求已到达,但 body/model 参数不兼容。"
+	if status_code == 401:
+		return "认证失败,检查 subscription key。"
+	if status_code == 403:
+		return "权限不足,检查 key、user header 或网关权限。"
+	if status_code == 404:
+		return "路径或模型部署不存在,检查 Base URL 和 Model。"
+	if status_code == 429:
+		return "限流或配额不足。"
+	if status_code >= 500:
+		return "网关或后端服务错误。"
+	return "请求失败。"
+
+
 func _build_chat_completion_body(model: String, oracle: String, game: Dictionary) -> Dictionary:
 	var is_gpt5 := model.to_lower().begins_with("gpt-5")
 	var body := {

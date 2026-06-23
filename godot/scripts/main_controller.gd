@@ -178,6 +178,21 @@ func _show_settings() -> void:
 	layout.add_child(_field_label("User header"))
 	var amd_user_input := _line_edit(amd_user, "user header, 例如你的 AMD 用户名")
 	layout.add_child(amd_user_input)
+	var test_status := _label("填写后可先测试连接,不会改变游戏状态。", 16, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true)
+	layout.add_child(test_status)
+	layout.add_child(_small_button("测试 AMD 连接", func():
+		test_status.text = "正在测试 AMD Gateway..."
+		test_status.add_theme_color_override("font_color", palette.cyan)
+		var result: Dictionary = await llm_client.test_direct_openai(get_tree().root, {
+			"base_url": amd_base_input.text.strip_edges(),
+			"model": amd_model_input.text.strip_edges(),
+			"subscription_key": amd_key_input.text.strip_edges(),
+			"user": amd_user_input.text.strip_edges(),
+			"placeholder_key": amd_placeholder_key
+		})
+		test_status.text = result.get("message", "未知测试结果")
+		test_status.add_theme_color_override("font_color", palette.cyan if bool(result.get("ok", false)) else palette.danger)
+	))
 	layout.add_child(_small_button("保存 LLM 设置", func():
 		llm_enabled = llm_toggle.button_pressed
 		llm_mode = "direct_amd" if mode_select.selected == 1 else "bridge"

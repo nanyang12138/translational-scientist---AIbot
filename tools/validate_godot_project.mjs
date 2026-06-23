@@ -58,6 +58,7 @@ assert.match(mainScript, /resolve_oracle_with_agent/);
 assert.match(mainScript, /直连 AMD LLM Gateway/);
 assert.match(mainScript, /ScrollContainer/);
 assert.match(mainScript, /Subscription Key/);
+assert.match(mainScript, /测试 AMD 连接/);
 
 const engineScript = await read("godot/scripts/oracle_engine.gd");
 assert.match(engineScript, /class_name OracleEngine/);
@@ -72,6 +73,7 @@ assert.match(llmClientScript, /class_name LLMAgentClient/);
 assert.match(llmClientScript, /HTTPRequest/);
 assert.match(llmClientScript, /func resolve_oracle/);
 assert.match(llmClientScript, /func resolve_oracle_direct_openai/);
+assert.match(llmClientScript, /func test_direct_openai/);
 assert.match(llmClientScript, /Ocp-Apim-Subscription-Key/);
 
 const saveScript = await read("godot/scripts/save_system.gd");
