@@ -2,18 +2,33 @@
 
 ## Cursor Cloud specific instructions
 
-This repository (`translational-scientist---AIbot`) is currently an empty/new project with only a README.md file. There is no application code, no dependencies, no services, and no tests.
+This repository now contains a small static Web prototype for **God Is Offline**, an agent-native game about issuing one oracle per turn and watching faction agents reinterpret it.
 
 ### Current state
 
-- **No source code** — No programming language or framework has been chosen yet.
-- **No dependency files** — No `package.json`, `requirements.txt`, `pyproject.toml`, or similar.
-- **No services to run** — No application server, database, or external service is configured.
-- **No lint/test/build commands** — None are available until code is added.
+- **Runtime**: vanilla HTML/CSS/JavaScript ES modules.
+- **Dependencies**: none beyond Node.js and Python 3 available in the environment.
+- **Core code**: `src/game.js` contains the local agent/world-state runtime; `src/app.js` wires it to the browser UI.
+- **Tests**: `test/game.test.js` uses Node's built-in test runner.
 
-### Future agents
+### Development commands
 
-When code is added to this repository, this file should be updated with:
-- How to install dependencies
-- How to run lint, tests, and the application
-- Any non-obvious development caveats
+- Run the local static server:
+
+  ```bash
+  npm start
+  ```
+
+  Then open `http://localhost:5173`.
+
+- Run tests:
+
+  ```bash
+  npm test
+  ```
+
+### Development caveats
+
+- The first prototype intentionally uses deterministic local persona agents instead of external LLM calls, so it runs without API keys.
+- If replacing local agents with real model-backed agents, keep `src/game.js`'s state transition contract testable and preserve deterministic tests for core world-state invariants.
+- Keep player-facing copy in Simplified Chinese unless the product direction changes.
