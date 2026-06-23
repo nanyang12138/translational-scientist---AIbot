@@ -87,5 +87,10 @@ assert.match(bridgeScript, /buildOpenAICompatibleRequest/);
 assert.match(bridgeScript, /buildAzureOpenAIRequest/);
 assert.match(bridgeScript, /callOllama/);
 assert.match(bridgeScript, /LLM_GATEWAY_SUBSCRIPTION_KEY/);
+assert.match(bridgeScript, /LLM_CHAT_COMPLETIONS_PATH/);
+
+const gatewayTestScript = await read("tools/test_llm_gateway.mjs");
+assert.match(gatewayTestScript, /diagnoseNetworkError/);
+assert.match(gatewayTestScript, /buildOpenAICompatibleRequest/);
 
 console.log(`Validated Godot project at ${godotRoot}`);

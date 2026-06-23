@@ -98,6 +98,8 @@ test("agent bridge builds AMD-style OpenAI-compatible gateway request", () => {
     "LLM_GATEWAY_SUBSCRIPTION_KEY",
     "LLM_GATEWAY_USER",
     "LLM_DISABLE_RESPONSE_FORMAT",
+    "LLM_CHAT_COMPLETIONS_PATH",
+    "LLM_CHAT_COMPLETIONS_URL",
   ]);
   Object.assign(process.env, {
     LLM_PROVIDER: "gateway",
@@ -120,6 +122,32 @@ test("agent bridge builds AMD-style OpenAI-compatible gateway request", () => {
   assert.equal(body.model, "GPT-oss-20B");
   assert.equal(body.max_completion_tokens, 1200);
   assert.equal(body.response_format, undefined);
+});
+
+test("agent bridge supports chat completions path and full URL overrides", () => {
+  const previous = snapshotEnv([
+    "LLM_PROVIDER",
+    "LLM_BASE_URL",
+    "LLM_API_KEY",
+    "LLM_MODEL",
+    "LLM_CHAT_COMPLETIONS_PATH",
+    "LLM_CHAT_COMPLETIONS_URL",
+  ]);
+  Object.assign(process.env, {
+    LLM_PROVIDER: "gateway",
+    LLM_BASE_URL: "https://gateway.example.com/root",
+    LLM_API_KEY: "dummy",
+    LLM_MODEL: "custom-model",
+    LLM_CHAT_COMPLETIONS_PATH: "v1/chat/completions",
+  });
+
+  const pathRequest = buildOpenAICompatibleRequest({ oracle: "测试", game: {}, provider: "gateway" });
+  process.env.LLM_CHAT_COMPLETIONS_URL = "https://gateway.example.com/custom/chat";
+  const fullUrlRequest = buildOpenAICompatibleRequest({ oracle: "测试", game: {}, provider: "gateway" });
+  restoreEnv(previous);
+
+  assert.equal(pathRequest.url, "https://gateway.example.com/root/v1/chat/completions");
+  assert.equal(fullUrlRequest.url, "https://gateway.example.com/custom/chat");
 });
 
 test("agent bridge builds Azure OpenAI deployment request", () => {

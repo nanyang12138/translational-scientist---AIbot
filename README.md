@@ -101,6 +101,33 @@ LLM_DISABLE_RESPONSE_FORMAT=1
 LLM_USE_MAX_TOKENS=1
 ```
 
+如果网关路径不是默认的 `/chat/completions`,可以调整:
+
+```bash
+LLM_CHAT_COMPLETIONS_PATH=v1/chat/completions
+```
+
+或者直接指定完整 URL:
+
+```bash
+LLM_CHAT_COMPLETIONS_URL=https://llm-api.example.com/OnPrem/chat/completions
+```
+
+诊断 gateway 连通性:
+
+```bash
+LLM_PROVIDER=gateway \
+LLM_BASE_URL=https://llm-api.example.com/OnPrem \
+LLM_MODEL=GPT-oss-20B \
+LLM_API_KEY=dummy \
+LLM_GATEWAY_SUBSCRIPTION_KEY=<your-subscription-key> \
+LLM_GATEWAY_USER=<your-user> \
+LLM_DISABLE_RESPONSE_FORMAT=1 \
+npm run test:llm-gateway
+```
+
+诊断脚本会隐藏敏感 header,并区分 DNS、超时、401/403、404、400 等问题。
+
 使用 Azure OpenAI:
 
 ```bash

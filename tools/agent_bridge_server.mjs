@@ -176,7 +176,7 @@ export function buildOpenAICompatibleRequest({ oracle = "test", game = {}, model
   };
   const body = buildChatCompletionBody({ oracle, game, model });
   return {
-    url: joinUrl(baseUrl, "chat/completions"),
+    url: resolveChatCompletionsUrl(baseUrl),
     init: {
       method: "POST",
       headers,
@@ -297,6 +297,14 @@ function parseExtraHeaders() {
 
 function joinUrl(baseUrl, suffix) {
   return `${String(baseUrl).replace(/\/$/, "")}/${suffix.replace(/^\//, "")}`;
+}
+
+function resolveChatCompletionsUrl(baseUrl) {
+  if (process.env.LLM_CHAT_COMPLETIONS_URL) {
+    return process.env.LLM_CHAT_COMPLETIONS_URL;
+  }
+  const path = process.env.LLM_CHAT_COMPLETIONS_PATH || "chat/completions";
+  return joinUrl(baseUrl, path);
 }
 
 async function callOllama({ oracle, game, model }) {

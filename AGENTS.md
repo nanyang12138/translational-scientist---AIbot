@@ -50,6 +50,12 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
   npm run start:agent
   ```
 
+  Gateway path overrides are supported with `LLM_CHAT_COMPLETIONS_PATH` or `LLM_CHAT_COMPLETIONS_URL`. Diagnose connectivity with:
+
+  ```bash
+  npm run test:llm-gateway
+  ```
+
   Or with Azure OpenAI:
 
   ```bash
