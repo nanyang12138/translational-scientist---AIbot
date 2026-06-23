@@ -59,6 +59,8 @@ assert.match(mainScript, /直连 AMD LLM Gateway/);
 assert.match(mainScript, /ScrollContainer/);
 assert.match(mainScript, /Subscription Key/);
 assert.match(mainScript, /测试 AMD 连接/);
+assert.match(mainScript, /_build_city_projection_panel/);
+assert.match(mainScript, /圣玻璃城战略投影/);
 
 const engineScript = await read("godot/scripts/oracle_engine.gd");
 assert.match(engineScript, /class_name OracleEngine/);

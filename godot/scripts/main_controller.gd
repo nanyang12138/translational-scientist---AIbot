@@ -233,8 +233,10 @@ func _show_control_room() -> void:
 
 	var center := VBoxContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_theme_constant_override("separation", 18)
 	columns.add_child(center)
+	center.add_child(_build_city_projection_panel())
 	center.add_child(_build_report_panel())
 
 	var right := VBoxContainer.new()
@@ -383,9 +385,120 @@ func _build_memory_panel() -> Control:
 	return panel
 
 
+func _build_city_projection_panel() -> Control:
+	var panel := _panel()
+	panel.custom_minimum_size = Vector2(0, 390)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 12)
+	panel.add_child(layout)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	layout.add_child(header)
+	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title_box)
+	title_box.add_child(_eyebrow("LIVE CITY PROJECTION"))
+	title_box.add_child(_label("圣玻璃城战略投影", 32, palette.text))
+	header.add_child(_crisis_badge())
+
+	var outcome: Dictionary = game.get("last_outcome", {})
+	var headline := "等待第一句神谕。城市投影处于冷启动。"
+	if not outcome.is_empty():
+		headline = outcome.get("headline", headline)
+	layout.add_child(_label(headline, 17, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	layout.add_child(grid)
+	var districts := [
+		{"name": "穹顶中枢", "stat": "order", "faction": "市政厅"},
+		{"name": "圣玻璃教堂", "stat": "faith", "faction": "圣玻璃教会"},
+		{"name": "贫民环街", "stat": "hunger", "faction": "无冠者革命军"},
+		{"name": "金线市场", "stat": "wealth", "faction": "金线商会"},
+		{"name": "黑烛暗巷", "stat": "secrecy", "faction": "黑烛帮"},
+		{"name": "棱镜广播塔", "stat": "paranoia", "faction": "棱镜公报"},
+	]
+	for district in districts:
+		grid.add_child(_district_card(district.name, district.stat, district.faction))
+
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 12)
+	layout.add_child(bottom)
+	var terminal_score := 0
+	if not outcome.is_empty():
+		terminal_score = int(outcome.get("terminal_pressure", {}).get("score", 0))
+	bottom.add_child(_system_chip("终局压力", "%d%%" % terminal_score))
+	bottom.add_child(_system_chip("LLM", "在线" if bool(outcome.get("llm_enabled", false)) else ("待机" if llm_enabled else "离线")))
+	bottom.add_child(_system_chip("城市回合", str(int(game.get("turn", 0)))))
+	return panel
+
+
+func _district_card(name: String, stat_id: String, faction_name: String) -> Control:
+	var value := int(game.stats.get(stat_id, 0))
+	var card := _panel(18, Color(1, 1, 1, 0.045))
+	card.custom_minimum_size = Vector2(0, 105)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 8)
+	card.add_child(layout)
+	var top := HBoxContainer.new()
+	layout.add_child(top)
+	var marker := ColorRect.new()
+	marker.custom_minimum_size = Vector2(14, 14)
+	marker.color = _value_color(value)
+	top.add_child(marker)
+	top.add_child(_label(name, 18, palette.text))
+	top.add_spacer(false)
+	top.add_child(_label("%d" % value, 22, _value_color(value)))
+	layout.add_child(_label("%s / %s" % [engine.get_stat_label(stat_id), faction_name], 13, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+	var bar := ProgressBar.new()
+	bar.max_value = 100
+	bar.value = value
+	bar.show_percentage = false
+	bar.add_theme_stylebox_override("background", _style(Color(1, 1, 1, 0.075), 99))
+	bar.add_theme_stylebox_override("fill", _style(_value_color(value), 99))
+	layout.add_child(bar)
+	return card
+
+
+func _crisis_badge() -> Control:
+	var crisis_key := ""
+	var crisis_value := -1
+	for key in game.stats.keys():
+		if int(game.stats[key]) > crisis_value:
+			crisis_key = key
+			crisis_value = int(game.stats[key])
+	var badge_color := _value_color(crisis_value)
+	badge_color.a = 0.14
+	var badge := _panel(14, badge_color)
+	badge.custom_minimum_size = Vector2(180, 72)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 4)
+	badge.add_child(layout)
+	layout.add_child(_eyebrow("PRIMARY CRISIS"))
+	layout.add_child(_label("%s %d" % [engine.get_stat_label(crisis_key), crisis_value], 22, _value_color(crisis_value)))
+	return badge
+
+
+func _system_chip(label_text: String, value_text: String) -> Control:
+	var chip := _panel(999, Color(1, 1, 1, 0.06))
+	chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	chip.add_child(row)
+	row.add_child(_label(label_text, 13, palette.muted))
+	row.add_spacer(false)
+	row.add_child(_label(value_text, 16, palette.gold))
+	return chip
+
+
 func _build_report_panel() -> Control:
 	var panel := _panel()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.custom_minimum_size = Vector2(0, 260)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
