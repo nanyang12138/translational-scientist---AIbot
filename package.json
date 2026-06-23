@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 5173",
+    "start:agent": "node tools/agent_bridge_server.mjs",
     "test": "node --test && npm run validate:godot",
     "validate:godot": "node tools/validate_godot_project.mjs",
     "export:windows": "./tools/export_windows_release.sh"

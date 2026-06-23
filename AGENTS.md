@@ -9,8 +9,9 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - **Primary game project**: `godot/` is a Godot 4.2+ desktop game project.
 - **Reference prototype**: vanilla HTML/CSS/JavaScript ES modules in `index.html` and `src/`.
 - **Dependencies**: none beyond Node.js and Python 3 available in the environment.
-- **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/save_system.gd` handles local saves.
+- **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime plus LLM-output validation/merge; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/llm_agent_client.gd` calls the local Agent Bridge; `godot/scripts/save_system.gd` handles local saves.
 - **Godot data**: `godot/data/game_config.json` and `godot/data/factions.json`.
+- **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for OpenAI-compatible APIs, Ollama, or mock mode. This keeps API keys out of the Godot client.
 - **Tests/validation**: `test/game.test.js` uses Node's built-in test runner for the JS reference runtime; `tools/validate_godot_project.mjs` validates Godot project structure and data.
 
 ### Development commands
@@ -22,6 +23,20 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - Use the prebuilt Windows portable package:
 
   `dist/windows/GodIsOffline-Windows.zip`
+
+  The zip includes `Start Agent Bridge.bat` for LLM Agent mode. It requires Node.js LTS and an API key for OpenAI-compatible mode.
+
+- Run the Agent Bridge in development:
+
+  ```bash
+  OPENAI_API_KEY=... npm run start:agent
+  ```
+
+  Or with Ollama:
+
+  ```bash
+  LLM_PROVIDER=ollama LLM_MODEL=llama3.1 npm run start:agent
+  ```
 
 - Rebuild the Windows portable package from Linux:
 
@@ -50,6 +65,6 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 ### Development caveats
 
 - The repository includes a generated Windows portable zip. If game code or Godot data changes, regenerate it with `./tools/export_windows_release.sh` before claiming the Windows package is current.
-- The first Godot vertical slice intentionally uses deterministic local persona agents instead of external LLM calls, so it runs without API keys.
-- If replacing local agents with real model-backed agents, keep `godot/scripts/oracle_engine.gd`'s state transition contract testable and preserve deterministic tests for core world-state invariants.
+- The Godot game supports both offline deterministic persona agents and LLM Agent Bridge mode. Offline mode must remain available as a fallback when bridge/API calls fail.
+- LLM output is not trusted. Keep `godot/scripts/oracle_engine.gd` validation for stat keys, delta ranges, faction IDs, memory length, and text length before mutating world state.
 - Keep player-facing copy in Simplified Chinese unless the product direction changes.

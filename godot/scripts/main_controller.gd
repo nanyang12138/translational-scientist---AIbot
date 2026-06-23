@@ -2,13 +2,18 @@ extends Control
 
 const OracleEngineScript := preload("res://scripts/oracle_engine.gd")
 const SaveSystemScript := preload("res://scripts/save_system.gd")
+const LLMAgentClientScript := preload("res://scripts/llm_agent_client.gd")
 
 var engine
 var save_system
+var llm_client
 var game := {}
 var screen_root: Control
 var oracle_input: TextEdit
 var status_label: Label
+var llm_enabled := false
+var llm_endpoint := "http://127.0.0.1:8787/resolve"
+var llm_request_in_flight := false
 
 var palette := {
 	"bg": Color("#09080F"),
@@ -25,6 +30,7 @@ var palette := {
 func _ready() -> void:
 	engine = OracleEngineScript.new()
 	save_system = SaveSystemScript.new()
+	llm_client = LLMAgentClientScript.new()
 	game = engine.new_game("godot-vertical-slice")
 	_build_screen_root()
 	_show_main_menu()
@@ -128,6 +134,26 @@ func _show_settings() -> void:
 		"系统: 关键 NPC 长期记忆、派系密谋、终局判定、章节化事件。",
 		"发行: Windows/macOS/Linux 导出预设、Steam capsule、trailer、手柄适配。"
 	]))
+	layout.add_child(_label("LLM Agent Bridge", 28, palette.gold))
+	layout.add_child(_label("开启后,游戏会调用本机 Agent Bridge 生成更活的阵营行动、阴谋和 NPC 记忆; 本地规则引擎仍负责校验和结算。", 18, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
+	var llm_toggle := CheckButton.new()
+	llm_toggle.text = "启用 LLM Agent 模式"
+	llm_toggle.button_pressed = llm_enabled
+	llm_toggle.add_theme_font_size_override("font_size", 20)
+	llm_toggle.add_theme_color_override("font_color", palette.text)
+	layout.add_child(llm_toggle)
+	var endpoint_input := LineEdit.new()
+	endpoint_input.text = llm_endpoint
+	endpoint_input.placeholder_text = "http://127.0.0.1:8787/resolve"
+	endpoint_input.add_theme_font_size_override("font_size", 18)
+	endpoint_input.add_theme_color_override("font_color", palette.text)
+	endpoint_input.add_theme_stylebox_override("normal", _style(Color(1, 1, 1, 0.065), 14))
+	layout.add_child(endpoint_input)
+	layout.add_child(_small_button("保存 LLM 设置", func():
+		llm_enabled = llm_toggle.button_pressed
+		llm_endpoint = endpoint_input.text.strip_edges()
+		_show_main_menu()
+	))
 	layout.add_child(_menu_button("返回主菜单", func(): _show_main_menu()))
 
 
@@ -184,10 +210,21 @@ func _build_top_bar() -> Control:
 	title.add_child(_eyebrow("OLD GOD CONSOLE / %s" % game.city_name))
 	title.add_child(_label("回合 %d" % int(game.turn), 32, palette.text))
 
-	status_label = _label("控制台等待神谕。", 18, palette.muted)
+	var mode_text := "LLM Agent: ON" if llm_enabled else "Local Rules: ON"
+	status_label = _label("%s / 控制台等待神谕。" % mode_text, 18, palette.muted)
 	row.add_child(status_label)
-	row.add_child(_small_button("保存", func(): _save_current_game()))
-	row.add_child(_small_button("主菜单", func(): _show_main_menu()))
+	var llm_button := _small_button("LLM 开关", func():
+		llm_enabled = not llm_enabled
+		_show_control_room()
+	)
+	llm_button.disabled = llm_request_in_flight
+	row.add_child(llm_button)
+	var save_button := _small_button("保存", func(): _save_current_game())
+	save_button.disabled = llm_request_in_flight
+	row.add_child(save_button)
+	var menu_button := _small_button("主菜单", func(): _show_main_menu())
+	menu_button.disabled = llm_request_in_flight
+	row.add_child(menu_button)
 	return panel
 
 
@@ -197,7 +234,8 @@ func _build_command_deck() -> Control:
 	layout.add_theme_constant_override("separation", 12)
 	panel.add_child(layout)
 	layout.add_child(_eyebrow("ISSUE ORACLE"))
-	layout.add_child(_label("每回合只能说一句话。越模糊,越容易被世界利用。", 20, palette.muted))
+	var mode_hint := "当前: LLM Agent Bridge 会生成活的阴谋,本地规则引擎负责校验。" if llm_enabled else "当前: 离线规则 agent。可在设置里开启 LLM Agent Bridge。"
+	layout.add_child(_label("每回合只能说一句话。越模糊,越容易被世界利用。%s" % mode_hint, 20, palette.muted, HORIZONTAL_ALIGNMENT_LEFT, true))
 
 	oracle_input = TextEdit.new()
 	oracle_input.custom_minimum_size = Vector2(0, 96)
@@ -221,12 +259,29 @@ func _build_command_deck() -> Control:
 
 
 func _submit_oracle() -> void:
+	if llm_request_in_flight:
+		return
 	var text := oracle_input.text.strip_edges()
 	if text.is_empty():
 		_show_status("神谕不能为空。", true)
 		return
-	game = engine.resolve_oracle(game, text)
-	oracle_input.text = ""
+	oracle_input.editable = false
+	if llm_enabled:
+		llm_request_in_flight = true
+		_show_status("正在等待 LLM Agent Bridge 回应...", false)
+		var agent_result: Dictionary = await llm_client.resolve_oracle(get_tree().root, llm_endpoint, text, game)
+		llm_request_in_flight = false
+		if bool(agent_result.get("ok", false)):
+			game = engine.resolve_oracle_with_agent(game, text, agent_result)
+		else:
+			game = engine.resolve_oracle(game, text)
+			var fallback_memories: Array = game.memories.duplicate(true)
+			fallback_memories.push_front("LLM Agent Bridge 失败,本回合已回退本地规则: %s" % agent_result.get("message", "unknown error"))
+			game.memories = fallback_memories.slice(0, 12)
+	else:
+		game = engine.resolve_oracle(game, text)
+	if is_instance_valid(oracle_input):
+		oracle_input.text = ""
 	_save_current_game(false)
 	_show_control_room()
 
@@ -289,6 +344,8 @@ func _build_report_panel() -> Control:
 		return panel
 
 	layout.add_child(_report_card("棱镜公报", outcome.headline, palette.gold))
+	if bool(outcome.get("llm_enabled", false)):
+		layout.add_child(_report_card("LLM Agent Director / %s" % outcome.get("llm_model", "unknown"), outcome.get("director_note", "LLM 已参与本轮世界演化。"), palette.cyan))
 	layout.add_child(_report_card("情报官 UI Agent", outcome.ui.summary, palette.cyan))
 	for report in outcome.faction_outcomes:
 		layout.add_child(_report_card(report.agent_name, "%s\n\n%s\n\n%s" % [report.voice, report.interpretation, _format_deltas(report.deltas)], Color.html(report.color)))

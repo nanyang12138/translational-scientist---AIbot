@@ -10,6 +10,7 @@
 - `src/` + `index.html`: 早期 Web 概念原型,保留用于快速验证 agent runtime 思路。
 - `test/`: JavaScript 原型的核心玩法测试。
 - `tools/validate_godot_project.mjs`: Godot 工程结构校验。
+- `tools/agent_bridge_server.mjs`: 本机 LLM Agent Bridge,支持 OpenAI-compatible API、Ollama 和 mock 模式。
 
 ## 游戏重点
 
@@ -17,7 +18,7 @@
 - **多 agent 解释权战争**: 市政厅、教会、商会、黑帮、革命军、媒体和谣言群体分别行动。
 - **动态世界状态**: 秩序、信仰、饥饿、动荡、秘密、不平等、自由、财富、猜疑、恐惧都会变化。
 - **旧神控制室**: Godot 版包含主菜单、控制室 UI、设置入口、存档、回合报告和终局预言。
-- **无外部依赖**: 当前 vertical slice 使用可替换的本地 agent runtime,无需 LLM API key 即可运行。
+- **双模式**: 离线规则 agent 可直接运行; LLM Agent Bridge 可接 API 或本地模型,让世界生成更不可预测的阴谋、来信和阵营记忆。
 
 ## 运行 Godot 版
 
@@ -35,7 +36,47 @@ dist/windows/GodIsOffline-Windows.zip
 2. 双击 `God Is Offline.exe`
 3. 如果 Windows SmartScreen 提示未知发布者,选择 `更多信息` -> `仍要运行`
 
-这个包由 Godot 4.2.2 release export 生成。
+这个包由 Godot 4.2.2 release export 生成。默认离线模式不需要 API key。
+
+### 开启 LLM Agent 模式
+
+Windows portable 包里包含:
+
+```text
+Start Agent Bridge.bat
+```
+
+使用 OpenAI-compatible API:
+
+1. 安装 Node.js LTS
+2. 解压 Windows 包
+3. 双击 `Start Agent Bridge.bat`
+4. 按提示粘贴 API key
+5. 启动 `God Is Offline.exe`
+6. 进入设置,开启 `LLM Agent 模式`
+7. endpoint 保持:
+
+```text
+http://127.0.0.1:8787/resolve
+```
+
+在开发环境中也可以直接运行:
+
+```bash
+OPENAI_API_KEY=你的key npm run start:agent
+```
+
+使用 Ollama 本地模型:
+
+```bash
+LLM_PROVIDER=ollama LLM_MODEL=llama3.1 npm run start:agent
+```
+
+架构原则:
+
+- LLM 生成阵营行动、新闻、NPC 来信、阴谋线索和记忆补丁。
+- Godot 本地规则引擎校验所有 delta、阵营 ID、文本长度和存档结构。
+- bridge 失败时游戏自动回退离线规则 agent。
 
 ### 从 Godot 编辑器运行
 
@@ -85,11 +126,10 @@ http://localhost:5173
 npm test
 ```
 
-测试覆盖神谕主题识别、阵营 agent 输出、世界状态变更、歧义风险、空输入校验,并对 Godot 工程配置/数据/脚本/导出预设做基础静态结构校验。
+测试覆盖神谕主题识别、阵营 agent 输出、世界状态变更、歧义风险、空输入校验、Agent Bridge 输出清洗,并对 Godot 工程配置/数据/脚本/导出预设做基础静态结构校验。
 
 ## 后续可扩展方向
 
-- 将 `godot/scripts/oracle_engine.gd` 中的本地 persona agent 替换为真实 LLM agent。
 - 给关键 NPC 增加长期记忆、关系网和可视化密谋链。
 - 增加章节化事件、派系谈判、终局判定和失败结局。
 - 建立正式美术/音频资产管线: 控制室场景、阵营徽记、动态城市投影、环境音乐和音效。

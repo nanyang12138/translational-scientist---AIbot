@@ -111,6 +111,66 @@ func resolve_oracle(game: Dictionary, oracle_text: String) -> Dictionary:
 	return next
 
 
+func resolve_oracle_with_agent(game: Dictionary, oracle_text: String, agent_output: Dictionary) -> Dictionary:
+	var oracle: String = _normalize(oracle_text)
+	if oracle.is_empty():
+		push_error("神谕不能为空。")
+		return game.duplicate(true)
+	if agent_output.is_empty() or not bool(agent_output.get("ok", false)):
+		return resolve_oracle(game, oracle)
+
+	var topics: Array = detect_topics(oracle)
+	var primary_topic: String = "faith" if topics.is_empty() else String(topics[0])
+	var ambiguity: int = _calculate_ambiguity(oracle, topics)
+	var rng: RandomNumberGenerator = _rng_from_text("%s:%s:%s:llm" % [game.get("seed", "seed"), int(game.get("turn", 0)) + 1, oracle])
+	var faction_outcomes: Array = _sanitize_agent_factions(agent_output.get("faction_outcomes", []), oracle)
+	var rumor: Dictionary = _sanitize_agent_report(agent_output.get("rumor", {}), "rumor", "谣言群体")
+	var next_stats: Dictionary = _apply_outcomes(game.stats, faction_outcomes + [rumor])
+	var ui: Dictionary = _sanitize_agent_ui(agent_output.get("ui", {}), next_stats, topics, ambiguity)
+	var next_factions: Array = _update_factions(game.factions, faction_outcomes, next_stats, rng)
+	var citizen: Dictionary = _sanitize_agent_citizen(agent_output.get("citizen", {}), oracle, primary_topic, next_stats, rng)
+	var headline: String = _limit_text(String(agent_output.get("headline", "")), 220)
+	if headline.is_empty():
+		headline = _create_headline(oracle, primary_topic, ambiguity, next_stats)
+	var terminal_pressure: Dictionary = _get_terminal_pressure(game.prophecy, next_stats, primary_topic)
+	var crisis: Dictionary = _detect_crisis(next_stats)
+	var audio_cues: Array = _create_audio_cues(topics, ambiguity, crisis)
+
+	var memories: Array = game.memories.duplicate(true)
+	var generated_memories_raw = agent_output.get("memories", [])
+	var generated_memories: Array = generated_memories_raw if typeof(generated_memories_raw) == TYPE_ARRAY else []
+	for index in range(min(generated_memories.size(), 6)):
+		memories.push_front(_limit_text(String(generated_memories[index]), 180))
+	memories.push_front(citizen.summary)
+	memories.push_front(headline)
+	memories.push_front("第 %d 回合 LLM 神谕:「%s」" % [int(game.turn) + 1, oracle])
+
+	var next: Dictionary = game.duplicate(true)
+	next.turn = int(game.turn) + 1
+	next.stats = next_stats
+	next.factions = next_factions
+	next.memories = memories.slice(0, 12)
+	next.last_outcome = {
+		"oracle": oracle,
+		"topics": topics,
+		"ambiguity": ambiguity,
+		"headline": headline,
+		"director_note": _limit_text(String(agent_output.get("director_note", "")), 360),
+		"faction_outcomes": faction_outcomes,
+		"rumor": rumor,
+		"ui": ui,
+		"citizen": citizen,
+		"terminal_pressure": terminal_pressure,
+		"crisis": crisis,
+		"audio_cues": audio_cues,
+		"llm_enabled": true,
+		"llm_provider": String(agent_output.get("provider", "unknown")),
+		"llm_model": String(agent_output.get("model", "unknown"))
+	}
+
+	return next
+
+
 func detect_topics(text: String) -> Array:
 	var found: Array = []
 	var lower: String = text.to_lower()
@@ -200,6 +260,85 @@ func _create_ui_outcome(stats: Dictionary, topics: Array, ambiguity: int) -> Dic
 		"agent_name": "情报官 UI Agent",
 		"panels": panels,
 		"summary": "UI Agent 判断本轮应展示 %s,因为神谕的歧义指数为 %d。" % ["、".join(panels), ambiguity]
+	}
+
+
+func _sanitize_agent_factions(items, oracle: String) -> Array:
+	var by_id: Dictionary = {}
+	if typeof(items) == TYPE_ARRAY:
+		for item in items:
+			if typeof(item) == TYPE_DICTIONARY:
+				by_id[String(item.get("agent_id", ""))] = item
+
+	var safe: Array = []
+	for faction in factions:
+		var item: Dictionary = by_id.get(faction.id, {})
+		safe.append({
+			"agent_id": faction.id,
+			"agent_name": faction.name,
+			"color": faction.get("color", "#FFFFFF"),
+			"voice": _limit_text(String(item.get("voice", faction.get("voice", ""))), 160),
+			"action": _limit_text(String(item.get("action", "%s把神谕改写成自己的行动许可" % faction.name)), 180),
+			"interpretation": _limit_text(String(item.get("interpretation", "「%s」被%s解读成一次可利用的政治机会。" % [oracle, faction.name])), 420),
+			"deltas": _sanitize_agent_deltas(item.get("deltas", {})),
+			"suspicion": _bounded(_safe_int(item.get("suspicion", 52), 52)),
+			"memory": _limit_text(String(item.get("memory", "")), 220)
+		})
+	return safe
+
+
+func _sanitize_agent_report(source, agent_id: String, agent_name: String) -> Dictionary:
+	var item: Dictionary = source if typeof(source) == TYPE_DICTIONARY else {}
+	return {
+		"agent_id": agent_id,
+		"agent_name": _limit_text(String(item.get("agent_name", agent_name)), 50),
+		"voice": _limit_text(String(item.get("voice", "每个人都只转述自己害怕的那一半。")), 160),
+		"action": _limit_text(String(item.get("action", "制造三个互相矛盾但都足够可信的版本")), 180),
+		"interpretation": _limit_text(String(item.get("interpretation", "谣言把神谕拆成互相冲突的版本。")), 420),
+		"deltas": _sanitize_agent_deltas(item.get("deltas", {})),
+		"suspicion": _bounded(_safe_int(item.get("suspicion", 60), 60))
+	}
+
+
+func _sanitize_agent_deltas(source) -> Dictionary:
+	var safe: Dictionary = {}
+	if typeof(source) != TYPE_DICTIONARY:
+		return safe
+	for key in source.keys():
+		if not config.get("stats", {}).has(key):
+			continue
+		safe[key] = clampi(_safe_int(source[key], 0), -18, 18)
+	return safe
+
+
+func _sanitize_agent_ui(source, stats: Dictionary, topics: Array, ambiguity: int) -> Dictionary:
+	var item: Dictionary = source if typeof(source) == TYPE_DICTIONARY else {}
+	var fallback: Dictionary = _create_ui_outcome(stats, topics, ambiguity)
+	var panels: Array = []
+	var raw_panels = item.get("panels", fallback.panels)
+	if typeof(raw_panels) == TYPE_ARRAY:
+		for panel in raw_panels:
+			if panels.size() >= 8:
+				break
+			panels.append(_limit_text(String(panel), 32))
+	if panels.is_empty():
+		panels = fallback.panels
+	return {
+		"agent_id": "ui",
+		"agent_name": "情报官 UI Agent",
+		"panels": panels,
+		"summary": _limit_text(String(item.get("summary", fallback.summary)), 240)
+	}
+
+
+func _sanitize_agent_citizen(source, oracle: String, primary_topic: String, stats: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var item: Dictionary = source if typeof(source) == TYPE_DICTIONARY else {}
+	var fallback: Dictionary = _create_citizen_letter(oracle, primary_topic, stats, rng)
+	return {
+		"from": _limit_text(String(item.get("from", fallback["from"])), 40),
+		"role": _limit_text(String(item.get("role", fallback.role)), 40),
+		"summary": _limit_text(String(item.get("summary", fallback.summary)), 160),
+		"body": _limit_text(String(item.get("body", fallback.body)), 520)
 	}
 
 
@@ -355,6 +494,24 @@ func _rng_from_text(text: String) -> RandomNumberGenerator:
 
 func _normalize(value: String) -> String:
 	return value.strip_edges().replace("\n", " ").replace("\t", " ")
+
+
+func _limit_text(value: String, max_length: int) -> String:
+	var clean: String = _normalize(value)
+	if clean.length() <= max_length:
+		return clean
+	return "%s…" % clean.left(max_length - 1)
+
+
+func _safe_int(value, fallback: int) -> int:
+	var value_type := typeof(value)
+	if value_type == TYPE_INT:
+		return value
+	if value_type == TYPE_FLOAT:
+		return int(value)
+	if value_type == TYPE_STRING and String(value).is_valid_int():
+		return int(value)
+	return fallback
 
 
 func _bounded(value: int) -> int:

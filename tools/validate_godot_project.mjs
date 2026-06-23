@@ -53,13 +53,21 @@ assert.match(mainScript, /func _show_main_menu/);
 assert.match(mainScript, /func _show_control_room/);
 assert.match(mainScript, /func _submit_oracle/);
 assert.match(mainScript, /func _save_current_game/);
+assert.match(mainScript, /llm_agent_client\.gd/);
+assert.match(mainScript, /resolve_oracle_with_agent/);
 
 const engineScript = await read("godot/scripts/oracle_engine.gd");
 assert.match(engineScript, /class_name OracleEngine/);
 assert.match(engineScript, /func resolve_oracle/);
+assert.match(engineScript, /func resolve_oracle_with_agent/);
 assert.match(engineScript, /func detect_topics/);
 assert.match(engineScript, /res:\/\/data\/game_config\.json/);
 assert.match(engineScript, /res:\/\/data\/factions\.json/);
+
+const llmClientScript = await read("godot/scripts/llm_agent_client.gd");
+assert.match(llmClientScript, /class_name LLMAgentClient/);
+assert.match(llmClientScript, /HTTPRequest/);
+assert.match(llmClientScript, /func resolve_oracle/);
 
 const saveScript = await read("godot/scripts/save_system.gd");
 assert.match(saveScript, /class_name SaveSystem/);
@@ -71,5 +79,10 @@ const exports = await read("godot/export_presets.cfg");
 assert.match(exports, /name="Windows Desktop"/);
 assert.match(exports, /name="Linux\/X11"/);
 assert.match(exports, /name="macOS"/);
+
+const bridgeScript = await read("tools/agent_bridge_server.mjs");
+assert.match(bridgeScript, /createBridgeServer/);
+assert.match(bridgeScript, /callOpenAICompatible/);
+assert.match(bridgeScript, /callOllama/);
 
 console.log(`Validated Godot project at ${godotRoot}`);

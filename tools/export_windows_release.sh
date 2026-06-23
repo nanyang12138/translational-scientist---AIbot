@@ -49,11 +49,40 @@ out.parent.mkdir(parents=True, exist_ok=True)
 
 with ZipFile(out, "w", ZIP_DEFLATED) as z:
     z.write(exe, "God Is Offline.exe")
+    z.write(root / "tools" / "agent_bridge_server.mjs", "tools/agent_bridge_server.mjs")
+    z.write(root / "godot" / "data" / "game_config.json", "godot/data/game_config.json")
+    z.write(root / "godot" / "data" / "factions.json", "godot/data/factions.json")
+    z.writestr(
+        "Start Agent Bridge.bat",
+        "@echo off\r\n"
+        "title God Is Offline - Agent Bridge\r\n"
+        "cd /d \"%~dp0\"\r\n"
+        "where node >nul 2>nul\r\n"
+        "if errorlevel 1 (\r\n"
+        "  echo Node.js is required for LLM Agent Bridge.\r\n"
+        "  echo Install Node.js LTS from https://nodejs.org/\r\n"
+        "  pause\r\n"
+        "  exit /b 1\r\n"
+        ")\r\n"
+        "if \"%LLM_PROVIDER%\"==\"\" set LLM_PROVIDER=openai\r\n"
+        "if /I \"%LLM_PROVIDER%\"==\"openai\" if \"%OPENAI_API_KEY%\"==\"\" (\r\n"
+        "  echo Paste your OpenAI-compatible API key. Input is visible in this prototype helper.\r\n"
+        "  set /p OPENAI_API_KEY=OPENAI_API_KEY: \r\n"
+        ")\r\n"
+        "if \"%LLM_MODEL%\"==\"\" set LLM_MODEL=gpt-4o-mini\r\n"
+        "echo Starting Agent Bridge at http://127.0.0.1:8787/resolve\r\n"
+        "node tools\\agent_bridge_server.mjs\r\n"
+        "pause\r\n",
+    )
     z.writestr(
         "README.txt",
         "God Is Offline / 神已离线\\n\\n"
         "Windows portable build exported with Godot 4.2.2.\\n"
-        "Unzip this archive, then double-click \"God Is Offline.exe\" to run.\\n\\n"
+        "Offline mode: unzip this archive, then double-click \"God Is Offline.exe\" to run.\\n\\n"
+        "LLM Agent mode:\\n"
+        "1. Install Node.js LTS if needed.\\n"
+        "2. Double-click \"Start Agent Bridge.bat\" and paste your API key.\\n"
+        "3. Launch the game, open Settings, enable LLM Agent mode, keep endpoint http://127.0.0.1:8787/resolve.\\n\\n"
         "If Windows SmartScreen appears, choose More info -> Run anyway.\\n",
     )
 
