@@ -277,9 +277,9 @@ export function resolveOracle(game, oracleText) {
   const rng = createRng(`${game.seed}:${game.turn + 1}:${oracle}`);
   const factionOutcomes = FACTIONS.map((faction) => interpretFaction(faction, topics, oracle, ambiguity, rng));
   const rumor = createRumorAgentOutcome(oracle, topics, ambiguity, rng);
-  const ui = createUiAgentOutcome(game, topics, ambiguity);
 
   const nextStats = applyOutcomes(game.stats, [...factionOutcomes, rumor]);
+  const ui = createUiAgentOutcome(nextStats, topics, ambiguity);
   const changedFactions = updateFactions(game.factions, factionOutcomes, nextStats, rng);
   const citizen = createCitizenLetter(game, oracle, primaryTopic, nextStats, rng);
   const headline = createHeadline(oracle, primaryTopic, ambiguity, nextStats);
@@ -368,12 +368,12 @@ function createRumorAgentOutcome(oracle, topics, ambiguity, rng) {
   };
 }
 
-function createUiAgentOutcome(game, topics, ambiguity) {
-  const panels = new Set(["今日新闻", "五大阵营热度", "神谕解释分歧"]);
+function createUiAgentOutcome(stats, topics, ambiguity) {
+  const panels = new Set(["今日新闻", "六大阵营热度", "神谕解释分歧"]);
 
-  if (topics.includes("food") || game.stats.hunger > 60) panels.add("粮仓与黑市价格");
-  if (topics.includes("truth") || game.stats.paranoia > 55) panels.add("影子审判名单");
-  if (topics.includes("equality") || game.stats.inequality > 62) panels.add("阶层冲突图");
+  if (topics.includes("food") || stats.hunger > 60) panels.add("粮仓与黑市价格");
+  if (topics.includes("truth") || stats.paranoia > 55) panels.add("影子审判名单");
+  if (topics.includes("equality") || stats.inequality > 62) panels.add("阶层冲突图");
   if (topics.includes("children")) panels.add("儿童来信");
   if (ambiguity > 62) panels.add("失真传播链");
 
