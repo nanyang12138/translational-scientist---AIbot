@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createBridgeServer, resolveWithAgent, sanitizeAgentOutput } from "../tools/agent_bridge_server.mjs";
+import {
+  buildAzureOpenAIRequest,
+  buildOpenAICompatibleRequest,
+  createBridgeServer,
+  resolveWithAgent,
+  sanitizeAgentOutput,
+} from "../tools/agent_bridge_server.mjs";
 
 test("agent bridge mock mode returns a complete sanitized turn", async () => {
   const previousProvider = process.env.LLM_PROVIDER;
@@ -82,3 +88,79 @@ test("agent bridge rejects browser origin requests by default", async () => {
   server.close();
   assert.equal(response.status, 403);
 });
+
+test("agent bridge builds AMD-style OpenAI-compatible gateway request", () => {
+  const previous = snapshotEnv([
+    "LLM_PROVIDER",
+    "LLM_BASE_URL",
+    "LLM_API_KEY",
+    "LLM_MODEL",
+    "LLM_GATEWAY_SUBSCRIPTION_KEY",
+    "LLM_GATEWAY_USER",
+    "LLM_DISABLE_RESPONSE_FORMAT",
+  ]);
+  Object.assign(process.env, {
+    LLM_PROVIDER: "gateway",
+    LLM_BASE_URL: "https://llm-api.example.com/OnPrem",
+    LLM_API_KEY: "dummy",
+    LLM_MODEL: "GPT-oss-20B",
+    LLM_GATEWAY_SUBSCRIPTION_KEY: "subscription-placeholder",
+    LLM_GATEWAY_USER: "test-user",
+    LLM_DISABLE_RESPONSE_FORMAT: "1",
+  });
+
+  const request = buildOpenAICompatibleRequest({ oracle: "测试", game: {}, provider: "gateway" });
+  const body = JSON.parse(request.init.body);
+  restoreEnv(previous);
+
+  assert.equal(request.url, "https://llm-api.example.com/OnPrem/chat/completions");
+  assert.equal(request.init.headers.Authorization, "Bearer dummy");
+  assert.equal(request.init.headers["Ocp-Apim-Subscription-Key"], "subscription-placeholder");
+  assert.equal(request.init.headers.user, "test-user");
+  assert.equal(body.model, "GPT-oss-20B");
+  assert.equal(body.max_completion_tokens, 1200);
+  assert.equal(body.response_format, undefined);
+});
+
+test("agent bridge builds Azure OpenAI deployment request", () => {
+  const previous = snapshotEnv([
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+    "AZURE_OPENAI_API_VERSION",
+    "AZURE_OPENAI_API_KEY",
+    "LLM_EXTRA_HEADERS_JSON",
+  ]);
+  Object.assign(process.env, {
+    AZURE_OPENAI_ENDPOINT: "https://example-azure.openai.azure.com",
+    AZURE_OPENAI_DEPLOYMENT: "gpt-5.5",
+    AZURE_OPENAI_API_VERSION: "2025-01-01-preview",
+    AZURE_OPENAI_API_KEY: "azure-key-placeholder",
+    LLM_EXTRA_HEADERS_JSON: JSON.stringify({ "x-ms-useragent": "god-is-offline-test" }),
+  });
+
+  const request = buildAzureOpenAIRequest({ oracle: "测试", game: {} });
+  const body = JSON.parse(request.init.body);
+  restoreEnv(previous);
+
+  assert.equal(
+    request.url,
+    "https://example-azure.openai.azure.com/openai/deployments/gpt-5.5/chat/completions?api-version=2025-01-01-preview"
+  );
+  assert.equal(request.init.headers["api-key"], "azure-key-placeholder");
+  assert.equal(request.init.headers["x-ms-useragent"], "god-is-offline-test");
+  assert.equal(body.model, "gpt-5.5");
+});
+
+function snapshotEnv(keys) {
+  return Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+}
+
+function restoreEnv(snapshot) {
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+}

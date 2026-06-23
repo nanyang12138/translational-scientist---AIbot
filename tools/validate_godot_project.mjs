@@ -83,6 +83,9 @@ assert.match(exports, /name="macOS"/);
 const bridgeScript = await read("tools/agent_bridge_server.mjs");
 assert.match(bridgeScript, /createBridgeServer/);
 assert.match(bridgeScript, /callOpenAICompatible/);
+assert.match(bridgeScript, /buildOpenAICompatibleRequest/);
+assert.match(bridgeScript, /buildAzureOpenAIRequest/);
 assert.match(bridgeScript, /callOllama/);
+assert.match(bridgeScript, /LLM_GATEWAY_SUBSCRIPTION_KEY/);
 
 console.log(`Validated Godot project at ${godotRoot}`);

@@ -66,6 +66,52 @@ http://127.0.0.1:8787/resolve
 OPENAI_API_KEY=你的key npm run start:agent
 ```
 
+使用 LLM gateway / AMD OnPrem 风格 OpenAI-compatible API:
+
+```bash
+LLM_PROVIDER=gateway \
+LLM_BASE_URL=https://llm-api.example.com/OnPrem \
+LLM_MODEL=GPT-oss-20B \
+LLM_API_KEY=dummy \
+LLM_GATEWAY_SUBSCRIPTION_KEY=<your-subscription-key> \
+LLM_GATEWAY_USER=<your-user> \
+npm run start:agent
+```
+
+等价的高级自定义 headers 写法:
+
+```bash
+LLM_PROVIDER=gateway \
+LLM_BASE_URL=https://llm-api.example.com/OnPrem \
+LLM_MODEL=GPT-oss-20B \
+LLM_API_KEY=dummy \
+LLM_EXTRA_HEADERS_JSON='{"Ocp-Apim-Subscription-Key":"<your-subscription-key>","user":"<your-user>"}' \
+npm run start:agent
+```
+
+如果你的网关不接受 `response_format`,可以加:
+
+```bash
+LLM_DISABLE_RESPONSE_FORMAT=1
+```
+
+如果你的网关使用旧参数名 `max_tokens`,可以加:
+
+```bash
+LLM_USE_MAX_TOKENS=1
+```
+
+使用 Azure OpenAI:
+
+```bash
+LLM_PROVIDER=azure \
+AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com \
+AZURE_OPENAI_DEPLOYMENT=gpt-5.5 \
+AZURE_OPENAI_API_VERSION=2025-01-01-preview \
+AZURE_OPENAI_API_KEY=<your-azure-key> \
+npm run start:agent
+```
+
 使用 Ollama 本地模型:
 
 ```bash
@@ -77,6 +123,7 @@ LLM_PROVIDER=ollama LLM_MODEL=llama3.1 npm run start:agent
 - LLM 生成阵营行动、新闻、NPC 来信、阴谋线索和记忆补丁。
 - Godot 本地规则引擎校验所有 delta、阵营 ID、文本长度和存档结构。
 - bridge 失败时游戏自动回退离线规则 agent。
+- 不要把真实 API key 或 subscription key 写入仓库; 通过环境变量或 Windows 启动脚本输入。
 
 ### 从 Godot 编辑器运行
 

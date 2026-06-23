@@ -11,7 +11,7 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - **Dependencies**: none beyond Node.js and Python 3 available in the environment.
 - **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime plus LLM-output validation/merge; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/llm_agent_client.gd` calls the local Agent Bridge; `godot/scripts/save_system.gd` handles local saves.
 - **Godot data**: `godot/data/game_config.json` and `godot/data/factions.json`.
-- **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for OpenAI-compatible APIs, Ollama, or mock mode. This keeps API keys out of the Godot client.
+- **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for OpenAI-compatible APIs, custom gateway/LLM Gate endpoints, Azure OpenAI, Ollama, or mock mode. This keeps API keys out of the Godot client.
 - **Tests/validation**: `test/game.test.js` uses Node's built-in test runner for the JS reference runtime; `tools/validate_godot_project.mjs` validates Godot project structure and data.
 
 ### Development commands
@@ -36,6 +36,29 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 
   ```bash
   LLM_PROVIDER=ollama LLM_MODEL=llama3.1 npm run start:agent
+  ```
+
+  Or with a custom OpenAI-compatible gateway:
+
+  ```bash
+  LLM_PROVIDER=gateway \
+  LLM_BASE_URL=https://llm-api.example.com/OnPrem \
+  LLM_MODEL=GPT-oss-20B \
+  LLM_API_KEY=dummy \
+  LLM_GATEWAY_SUBSCRIPTION_KEY=<your-subscription-key> \
+  LLM_GATEWAY_USER=<your-user> \
+  npm run start:agent
+  ```
+
+  Or with Azure OpenAI:
+
+  ```bash
+  LLM_PROVIDER=azure \
+  AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com \
+  AZURE_OPENAI_DEPLOYMENT=gpt-5.5 \
+  AZURE_OPENAI_API_VERSION=2025-01-01-preview \
+  AZURE_OPENAI_API_KEY=<your-azure-key> \
+  npm run start:agent
   ```
 
 - Rebuild the Windows portable package from Linux:
@@ -67,4 +90,5 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - The repository includes a generated Windows portable zip. If game code or Godot data changes, regenerate it with `./tools/export_windows_release.sh` before claiming the Windows package is current.
 - The Godot game supports both offline deterministic persona agents and LLM Agent Bridge mode. Offline mode must remain available as a fallback when bridge/API calls fail.
 - LLM output is not trusted. Keep `godot/scripts/oracle_engine.gd` validation for stat keys, delta ranges, faction IDs, memory length, and text length before mutating world state.
+- Never commit real API keys, subscription keys, gateway headers, or Azure keys. Use env vars / Windows prompt placeholders only.
 - Keep player-facing copy in Simplified Chinese unless the product direction changes.

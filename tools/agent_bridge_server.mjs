@@ -72,9 +72,11 @@ export async function resolveWithAgent(payload) {
   const raw =
     provider === "ollama"
       ? await callOllama({ oracle, game, model })
-      : provider === "openai"
-        ? await callOpenAICompatible({ oracle, game, model })
-        : createMockAgentOutput({ oracle, game });
+      : provider === "openai" || provider === "gateway"
+        ? await callOpenAICompatible({ oracle, game, model, provider })
+        : provider === "azure"
+          ? await callAzureOpenAI({ oracle, game, model })
+          : createMockAgentOutput({ oracle, game });
 
   return sanitizeAgentOutput(raw, { oracle, provider, model });
 }
@@ -161,26 +163,31 @@ function sanitizeMemories(memories) {
   return memories.map((memory) => limitText(memory, 180)).filter(Boolean).slice(0, 6);
 }
 
-async function callOpenAICompatible({ oracle, game, model }) {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
-  if (!apiKey) {
+export function buildOpenAICompatibleRequest({ oracle = "test", game = {}, model = getModelName(), provider = getProvider() } = {}) {
+  const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
+  if (!apiKey && provider !== "gateway") {
     throw new Error("OPENAI_API_KEY or LLM_API_KEY is required for LLM_PROVIDER=openai");
   }
-
   const baseUrl = process.env.LLM_BASE_URL || "https://api.openai.com/v1";
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  const headers = {
+    "Content-Type": "application/json",
+    ...getAuthHeaders(apiKey),
+    ...parseExtraHeaders(),
+  };
+  const body = buildChatCompletionBody({ oracle, game, model });
+  return {
+    url: joinUrl(baseUrl, "chat/completions"),
+    init: {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify({
-      model,
-      temperature: Number(process.env.LLM_TEMPERATURE ?? 0.9),
-      response_format: { type: "json_object" },
-      messages: buildMessages({ oracle, game }),
-    }),
-  });
+  };
+}
+
+async function callOpenAICompatible({ oracle, game, model, provider }) {
+  const request = buildOpenAICompatibleRequest({ oracle, game, model, provider });
+  const response = await fetch(request.url, request.init);
 
   if (!response.ok) {
     const body = await response.text();
@@ -190,6 +197,106 @@ async function callOpenAICompatible({ oracle, game, model }) {
 
   const json = await response.json();
   return parseJsonContent(json?.choices?.[0]?.message?.content);
+}
+
+export function buildAzureOpenAIRequest({ oracle = "test", game = {}, model = getModelName() } = {}) {
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT || process.env.LLM_BASE_URL;
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || model;
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
+  const apiKey = process.env.AZURE_OPENAI_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+  if (!endpoint || !deployment || !apiKey) {
+    throw new Error("AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT/model, and AZURE_OPENAI_API_KEY are required");
+  }
+  const url = new URL(joinUrl(endpoint, `openai/deployments/${encodeURIComponent(deployment)}/chat/completions`));
+  url.searchParams.set("api-version", apiVersion);
+  return {
+    url: url.toString(),
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+        ...parseExtraHeaders(),
+      },
+      body: JSON.stringify(buildChatCompletionBody({ oracle, game, model })),
+    },
+  };
+}
+
+async function callAzureOpenAI({ oracle, game, model }) {
+  const request = buildAzureOpenAIRequest({ oracle, game, model });
+  const response = await fetch(request.url, request.init);
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.error(`Azure OpenAI request failed: ${response.status} ${body.slice(0, 500)}`);
+    throw new Error(`Azure OpenAI request failed with HTTP ${response.status}`);
+  }
+
+  const json = await response.json();
+  return parseJsonContent(json?.choices?.[0]?.message?.content);
+}
+
+function buildChatCompletionBody({ oracle, game, model }) {
+  const body = {
+    model,
+    temperature: Number(process.env.LLM_TEMPERATURE ?? 0.9),
+    messages: buildMessages({ oracle, game }),
+  };
+
+  const maxTokens = Number(process.env.LLM_MAX_COMPLETION_TOKENS || process.env.LLM_MAX_TOKENS || 1200);
+  if (maxTokens > 0) {
+    if (process.env.LLM_USE_MAX_TOKENS === "1") {
+      body.max_tokens = maxTokens;
+    } else {
+      body.max_completion_tokens = maxTokens;
+    }
+  }
+
+  if (process.env.LLM_DISABLE_RESPONSE_FORMAT !== "1") {
+    body.response_format = { type: "json_object" };
+  }
+
+  return body;
+}
+
+function getAuthHeaders(apiKey) {
+  const headerName = process.env.LLM_API_KEY_HEADER || "Authorization";
+  if (!apiKey) return {};
+  if (headerName.toLowerCase() === "authorization") {
+    const prefix = process.env.LLM_AUTH_PREFIX ?? "Bearer";
+    return { Authorization: prefix ? `${prefix} ${apiKey}` : apiKey };
+  }
+  return { [headerName]: apiKey };
+}
+
+function parseExtraHeaders() {
+  const headers = {};
+  if (process.env.LLM_GATEWAY_SUBSCRIPTION_KEY) {
+    headers["Ocp-Apim-Subscription-Key"] = process.env.LLM_GATEWAY_SUBSCRIPTION_KEY;
+  }
+  if (process.env.LLM_GATEWAY_USER) {
+    headers.user = process.env.LLM_GATEWAY_USER;
+  }
+
+  const raw = process.env.LLM_EXTRA_HEADERS_JSON;
+  if (!raw) return headers;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("LLM_EXTRA_HEADERS_JSON must be an object");
+    }
+    return {
+      ...headers,
+      ...Object.fromEntries(Object.entries(parsed).map(([key, value]) => [String(key), String(value)])),
+    };
+  } catch (error) {
+    throw new Error(`Invalid LLM_EXTRA_HEADERS_JSON: ${error.message}`);
+  }
+}
+
+function joinUrl(baseUrl, suffix) {
+  return `${String(baseUrl).replace(/\/$/, "")}/${suffix.replace(/^\//, "")}`;
 }
 
 async function callOllama({ oracle, game, model }) {
@@ -381,7 +488,9 @@ function isAllowedOrigin(request) {
 
 function getProvider() {
   const provider = (process.env.LLM_PROVIDER || "").toLowerCase();
-  if (provider === "openai" || provider === "ollama" || provider === "mock") return provider;
+  if (provider === "openai" || provider === "gateway" || provider === "azure" || provider === "ollama" || provider === "mock") return provider;
+  if (process.env.AZURE_OPENAI_ENDPOINT) return "azure";
+  if (process.env.LLM_BASE_URL && (process.env.LLM_GATEWAY_SUBSCRIPTION_KEY || process.env.LLM_EXTRA_HEADERS_JSON)) return "gateway";
   if (process.env.OPENAI_API_KEY || process.env.LLM_API_KEY) return "openai";
   if (process.env.OLLAMA_BASE_URL) return "ollama";
   return "mock";
@@ -390,8 +499,10 @@ function getProvider() {
 function getModelName() {
   const provider = getProvider();
   if (process.env.LLM_MODEL) return process.env.LLM_MODEL;
+  if (provider === "azure" && process.env.AZURE_OPENAI_DEPLOYMENT) return process.env.AZURE_OPENAI_DEPLOYMENT;
   if (provider === "ollama") return "llama3.1";
   if (provider === "openai") return "gpt-4o-mini";
+  if (provider === "gateway") return "GPT-oss-20B";
   return "mock-agent";
 }
 
