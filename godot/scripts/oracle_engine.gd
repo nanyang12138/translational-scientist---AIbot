@@ -47,49 +47,49 @@ func new_game(seed_text := "god-is-offline") -> Dictionary:
 
 
 func set_prophecy(game: Dictionary, prophecy: String) -> Dictionary:
-	var clean := _normalize(prophecy)
-	var next := game.duplicate(true)
+	var clean: String = _normalize(prophecy)
+	var next: Dictionary = game.duplicate(true)
 	if clean.is_empty():
 		return next
 
 	next.prophecy = clean
-	var memories := next.memories.duplicate(true)
+	var memories: Array = next.memories.duplicate(true)
 	memories.push_front("终局预言被写入控制台:「%s」" % clean)
 	next.memories = memories.slice(0, 8)
 	return next
 
 
 func resolve_oracle(game: Dictionary, oracle_text: String) -> Dictionary:
-	var oracle := _normalize(oracle_text)
+	var oracle: String = _normalize(oracle_text)
 	if oracle.is_empty():
 		push_error("神谕不能为空。")
 		return game.duplicate(true)
 
-	var topics := detect_topics(oracle)
-	var primary_topic := "faith" if topics.is_empty() else topics[0]
-	var ambiguity := _calculate_ambiguity(oracle, topics)
-	var rng := _rng_from_text("%s:%s:%s" % [game.get("seed", "seed"), int(game.get("turn", 0)) + 1, oracle])
-	var faction_outcomes := []
+	var topics: Array = detect_topics(oracle)
+	var primary_topic: String = "faith" if topics.is_empty() else String(topics[0])
+	var ambiguity: int = _calculate_ambiguity(oracle, topics)
+	var rng: RandomNumberGenerator = _rng_from_text("%s:%s:%s" % [game.get("seed", "seed"), int(game.get("turn", 0)) + 1, oracle])
+	var faction_outcomes: Array = []
 
 	for faction in factions:
 		faction_outcomes.append(_interpret_faction(faction, topics, oracle, ambiguity, rng))
 
-	var rumor := _create_rumor_outcome(topics, ambiguity, rng)
-	var next_stats := _apply_outcomes(game.stats, faction_outcomes + [rumor])
-	var ui := _create_ui_outcome(next_stats, topics, ambiguity)
-	var next_factions := _update_factions(game.factions, faction_outcomes, next_stats, rng)
-	var citizen := _create_citizen_letter(oracle, primary_topic, next_stats, rng)
-	var headline := _create_headline(oracle, primary_topic, ambiguity, next_stats)
-	var terminal_pressure := _get_terminal_pressure(game.prophecy, next_stats, primary_topic)
-	var crisis := _detect_crisis(next_stats)
-	var audio_cues := _create_audio_cues(topics, ambiguity, crisis)
+	var rumor: Dictionary = _create_rumor_outcome(topics, ambiguity, rng)
+	var next_stats: Dictionary = _apply_outcomes(game.stats, faction_outcomes + [rumor])
+	var ui: Dictionary = _create_ui_outcome(next_stats, topics, ambiguity)
+	var next_factions: Array = _update_factions(game.factions, faction_outcomes, next_stats, rng)
+	var citizen: Dictionary = _create_citizen_letter(oracle, primary_topic, next_stats, rng)
+	var headline: String = _create_headline(oracle, primary_topic, ambiguity, next_stats)
+	var terminal_pressure: Dictionary = _get_terminal_pressure(game.prophecy, next_stats, primary_topic)
+	var crisis: Dictionary = _detect_crisis(next_stats)
+	var audio_cues: Array = _create_audio_cues(topics, ambiguity, crisis)
 
-	var memories := game.memories.duplicate(true)
+	var memories: Array = game.memories.duplicate(true)
 	memories.push_front(citizen.summary)
 	memories.push_front(headline)
 	memories.push_front("第 %d 回合神谕:「%s」" % [int(game.turn) + 1, oracle])
 
-	var next := game.duplicate(true)
+	var next: Dictionary = game.duplicate(true)
 	next.turn = int(game.turn) + 1
 	next.stats = next_stats
 	next.factions = next_factions
@@ -112,8 +112,8 @@ func resolve_oracle(game: Dictionary, oracle_text: String) -> Dictionary:
 
 
 func detect_topics(text: String) -> Array:
-	var found := []
-	var lower := text.to_lower()
+	var found: Array = []
+	var lower: String = text.to_lower()
 	for topic_id in config.get("topics", {}).keys():
 		for keyword in config.topics[topic_id].get("keywords", []):
 			if lower.contains(String(keyword).to_lower()):
@@ -131,20 +131,20 @@ func get_samples() -> Array:
 
 
 func _interpret_faction(faction: Dictionary, topics: Array, oracle: String, ambiguity: int, rng: RandomNumberGenerator) -> Dictionary:
-	var relevant_topic := ""
+	var relevant_topic: String = ""
 	for topic_id in topics:
 		if faction.get("triggers", {}).has(topic_id):
 			relevant_topic = topic_id
 			break
 
-	var trigger := {}
+	var trigger: Dictionary = {}
 	if not relevant_topic.is_empty():
 		trigger = faction.triggers[relevant_topic]
 
-	var action := trigger.get("action", faction.get("base_action", "保持沉默并等待局势改变"))
-	var deltas := _merge_deltas(faction.get("stat_deltas", {}), trigger.get("deltas", {}))
-	var opportunism := int(round(float(ambiguity - 35) / 8.0))
-	var adjusted := {}
+	var action: String = String(trigger.get("action", faction.get("base_action", "保持沉默并等待局势改变")))
+	var deltas: Dictionary = _merge_deltas(faction.get("stat_deltas", {}), trigger.get("deltas", {}))
+	var opportunism: int = int(round(float(ambiguity - 35) / 8.0))
+	var adjusted: Dictionary = {}
 	for key in deltas.keys():
 		adjusted[key] = int(deltas[key]) + int(round(float(opportunism) * rng.randf()))
 
@@ -161,10 +161,10 @@ func _interpret_faction(faction: Dictionary, topics: Array, oracle: String, ambi
 
 
 func _create_rumor_outcome(topics: Array, ambiguity: int, rng: RandomNumberGenerator) -> Dictionary:
-	var labels := []
+	var labels: Array = []
 	for topic_id in topics:
 		labels.append(topic_labels.get(topic_id, topic_id))
-	var label_text := "神秘" if labels.is_empty() else "、".join(labels)
+	var label_text: String = "神秘" if labels.is_empty() else "、".join(labels)
 
 	return {
 		"agent_id": "rumor",
@@ -182,7 +182,7 @@ func _create_rumor_outcome(topics: Array, ambiguity: int, rng: RandomNumberGener
 
 
 func _create_ui_outcome(stats: Dictionary, topics: Array, ambiguity: int) -> Dictionary:
-	var panels := ["今日新闻", "六大阵营热度", "神谕解释分歧"]
+	var panels: Array = ["今日新闻", "六大阵营热度", "神谕解释分歧"]
 
 	if topics.has("food") or int(stats.get("hunger", 0)) > 60:
 		panels.append("粮仓与黑市价格")
@@ -204,7 +204,7 @@ func _create_ui_outcome(stats: Dictionary, topics: Array, ambiguity: int) -> Dic
 
 
 func _apply_outcomes(stats: Dictionary, outcomes: Array) -> Dictionary:
-	var next := stats.duplicate(true)
+	var next: Dictionary = stats.duplicate(true)
 	for outcome in outcomes:
 		for key in outcome.get("deltas", {}).keys():
 			next[key] = _bounded(int(next.get(key, 0)) + int(outcome.deltas[key]))
@@ -212,16 +212,16 @@ func _apply_outcomes(stats: Dictionary, outcomes: Array) -> Dictionary:
 
 
 func _update_factions(current_factions: Array, outcomes: Array, stats: Dictionary, rng: RandomNumberGenerator) -> Array:
-	var next := []
+	var next: Array = []
 	for faction_state in current_factions:
-		var outcome := {}
+		var outcome: Dictionary = {}
 		for candidate in outcomes:
 			if candidate.agent_id == faction_state.id:
 				outcome = candidate
 				break
-		var heat_delta := int(round(float(outcome.get("suspicion", 35)) / 12.0)) + int(round(float(stats.get("unrest", 0)) / 28.0)) - 2
-		var trust_delta := int(round(float(int(stats.get("faith", 0)) - int(stats.get("paranoia", 0))) / 24.0)) + int(rng.randf() * 4.0) - 2
-		var copy := faction_state.duplicate(true)
+		var heat_delta: int = int(round(float(outcome.get("suspicion", 35)) / 12.0)) + int(round(float(stats.get("unrest", 0)) / 28.0)) - 2
+		var trust_delta: int = int(round(float(int(stats.get("faith", 0)) - int(stats.get("paranoia", 0))) / 24.0)) + int(rng.randf() * 4.0) - 2
+		var copy: Dictionary = faction_state.duplicate(true)
 		copy.heat = _bounded(int(copy.heat) + heat_delta)
 		copy.trust = _bounded(int(copy.trust) + trust_delta)
 		next.append(copy)
@@ -229,9 +229,9 @@ func _update_factions(current_factions: Array, outcomes: Array, stats: Dictionar
 
 
 func _create_citizen_letter(oracle: String, primary_topic: String, stats: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
-	var names := ["伊芙玻璃匠", "莫兰钟表师", "塞拉清道夫", "尼奥旧护士", "阿什门徒", "露卡逃兵", "塔维孤儿", "米娅书记员"]
-	var roles := ["送水人", "见习修女", "地下印刷工", "粮仓守夜人", "弃誓士兵", "玻璃校舍学生", "市场账房"]
-	var topic_lines := {
+	var names: Array = ["伊芙玻璃匠", "莫兰钟表师", "塞拉清道夫", "尼奥旧护士", "阿什门徒", "露卡逃兵", "塔维孤儿", "米娅书记员"]
+	var roles: Array = ["送水人", "见习修女", "地下印刷工", "粮仓守夜人", "弃誓士兵", "玻璃校舍学生", "市场账房"]
+	var topic_lines: Dictionary = {
 		"food": "今天我真的拿到了一小块面包,但给面包的人要我明天替他作证。",
 		"truth": "他们让我站到灯下证明自己没有撒谎,可我害怕我的影子比别人长。",
 		"equality": "广场上每个人都说自己终于平等,但士兵仍然站在高台上。",
@@ -240,9 +240,9 @@ func _create_citizen_letter(oracle: String, primary_topic: String, stats: Dictio
 		"wealth": "钱币上印着神的眼睛,穷人说那只眼睛从不看他们。",
 		"faith": "教堂今天很满,但我听见有人在祈祷你不要再开口。"
 	}
-	var name := names[int(rng.randi() % names.size())]
-	var role := roles[int(rng.randi() % roles.size())]
-	var crisis := _detect_crisis(stats)
+	var name: String = String(names[int(rng.randi() % names.size())])
+	var role: String = String(roles[int(rng.randi() % roles.size())])
+	var crisis: Dictionary = _detect_crisis(stats)
 
 	return {
 		"from": name,
@@ -253,9 +253,9 @@ func _create_citizen_letter(oracle: String, primary_topic: String, stats: Dictio
 
 
 func _create_headline(oracle: String, primary_topic: String, ambiguity: int, stats: Dictionary) -> String:
-	var topic := topic_labels.get(primary_topic, "神谕")
-	var crisis := _detect_crisis(stats)
-	var prefix := "七种译本同时流传" if ambiguity > 60 else "控制台重新发声"
+	var topic: String = String(topic_labels.get(primary_topic, "神谕"))
+	var crisis: Dictionary = _detect_crisis(stats)
+	var prefix: String = "七种译本同时流传" if ambiguity > 60 else "控制台重新发声"
 	return "%s: 「%s」引爆%s争夺,%s成为圣玻璃城今日主词。" % [prefix, oracle, topic, crisis.label]
 
 

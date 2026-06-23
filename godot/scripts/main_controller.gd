@@ -3,8 +3,8 @@ extends Control
 const OracleEngineScript := preload("res://scripts/oracle_engine.gd")
 const SaveSystemScript := preload("res://scripts/save_system.gd")
 
-var engine: OracleEngine
-var save_system: SaveSystem
+var engine
+var save_system
 var game := {}
 var screen_root: Control
 var oracle_input: TextEdit
@@ -98,7 +98,7 @@ func _start_new_game() -> void:
 
 
 func _continue_game() -> void:
-	var loaded := save_system.load_game()
+	var loaded: Dictionary = save_system.load_game()
 	if loaded.is_empty():
 		_show_status("没有找到可读取的存档。", true)
 		return

@@ -19,6 +19,18 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 
   Open `godot/project.godot` with Godot 4.2+ and press Run. The main scene is `res://scenes/main.tscn`.
 
+- Use the prebuilt Windows portable package:
+
+  `dist/windows/GodIsOffline-Windows.zip`
+
+- Rebuild the Windows portable package from Linux:
+
+  ```bash
+  ./tools/export_windows_release.sh
+  ```
+
+  This downloads Godot 4.2.2 and Windows export templates into `.cache/`, performs a headless project parse, exports the Windows executable, and creates `dist/windows/GodIsOffline-Windows.zip`.
+
 - Run the local static Web reference:
 
   ```bash
@@ -37,7 +49,7 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 
 ### Development caveats
 
-- The current Cloud environment does not have the Godot CLI installed. Do not claim Godot editor launch or binary export has been verified here unless you run it in an environment with Godot 4.2+.
+- The repository includes a generated Windows portable zip. If game code or Godot data changes, regenerate it with `./tools/export_windows_release.sh` before claiming the Windows package is current.
 - The first Godot vertical slice intentionally uses deterministic local persona agents instead of external LLM calls, so it runs without API keys.
 - If replacing local agents with real model-backed agents, keep `godot/scripts/oracle_engine.gd`'s state transition contract testable and preserve deterministic tests for core world-state invariants.
 - Keep player-facing copy in Simplified Chinese unless the product direction changes.

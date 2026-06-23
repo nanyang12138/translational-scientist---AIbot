@@ -21,6 +21,24 @@
 
 ## 运行 Godot 版
 
+### Windows 免安装包
+
+仓库包含一个 Windows portable 包:
+
+```text
+dist/windows/GodIsOffline-Windows.zip
+```
+
+使用方式:
+
+1. 下载并解压 `GodIsOffline-Windows.zip`
+2. 双击 `God Is Offline.exe`
+3. 如果 Windows SmartScreen 提示未知发布者,选择 `更多信息` -> `仍要运行`
+
+这个包由 Godot 4.2.2 release export 生成。
+
+### 从 Godot 编辑器运行
+
 安装 Godot 4.2+ 后打开:
 
 ```text
@@ -39,7 +57,15 @@ res://scenes/main.tscn
 godot/export_presets.cfg
 ```
 
-> 当前 Cloud 环境没有 Godot CLI,因此这里提交的是完整工程文件和结构校验,不是已导出的二进制包。
+### 重新导出 Windows 包
+
+在 Linux 环境可运行:
+
+```bash
+./tools/export_windows_release.sh
+```
+
+脚本会下载 Godot 4.2.2 和 Windows export templates,执行 headless 项目解析,导出 exe,并重新生成 `dist/windows/GodIsOffline-Windows.zip`。
 
 ## 运行 Web 概念原型
 
