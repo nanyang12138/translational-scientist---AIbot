@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 5173",
-    "test": "node --test"
+    "test": "node --test && npm run validate:godot",
+    "validate:godot": "node tools/validate_godot_project.mjs"
   }
 }
