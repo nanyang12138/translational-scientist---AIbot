@@ -11,6 +11,7 @@ var game := {}
 var screen_root: Control
 var oracle_input: TextEdit
 var status_label: Label
+var current_screen := "menu"
 var llm_enabled := false
 var llm_mode := "bridge"
 var llm_endpoint := "http://127.0.0.1:8787/resolve"
@@ -45,6 +46,15 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("quick_save") and not game.is_empty():
 		_save_current_game()
+	elif event.is_action_pressed("open_settings"):
+		_show_settings()
+	elif event.is_action_pressed("go_back"):
+		if current_screen == "control":
+			_show_main_menu()
+		elif current_screen == "settings":
+			_show_main_menu()
+	elif event.is_action_pressed("focus_oracle") and current_screen == "control" and is_instance_valid(oracle_input):
+		oracle_input.grab_focus()
 
 
 func _build_screen_root() -> void:
@@ -67,6 +77,7 @@ func _clear_screen() -> void:
 
 func _show_main_menu() -> void:
 	_clear_screen()
+	current_screen = "menu"
 
 	var frame := _margin_frame(72)
 	screen_root.add_child(frame)
@@ -102,6 +113,7 @@ func _show_main_menu() -> void:
 	menu.add_child(continue_button)
 	menu.add_child(_menu_button("设置 / 发行规格", func(): _show_settings()))
 	menu.add_child(_menu_button("退出", func(): get_tree().quit()))
+	menu.add_child(_controls_hint("Enter 确认  /  F1 设置  /  Ctrl+S 保存"))
 
 
 func _start_new_game() -> void:
@@ -120,6 +132,7 @@ func _continue_game() -> void:
 
 func _show_settings() -> void:
 	_clear_screen()
+	current_screen = "settings"
 
 	var frame := _margin_frame(56)
 	screen_root.add_child(frame)
@@ -204,10 +217,12 @@ func _show_settings() -> void:
 		_show_main_menu()
 	))
 	layout.add_child(_menu_button("返回主菜单", func(): _show_main_menu()))
+	layout.add_child(_controls_hint("Esc 返回  /  F1 设置  /  鼠标或 Tab 切换输入框"))
 
 
 func _show_control_room() -> void:
 	_clear_screen()
+	current_screen = "control"
 
 	var outer := _margin_frame(28)
 	screen_root.add_child(outer)
@@ -245,8 +260,11 @@ func _show_control_room() -> void:
 	columns.add_child(right)
 	right.add_child(_build_faction_panel())
 	right.add_child(_build_prophecy_panel())
+	vertical.add_child(_controls_hint("Tab 聚焦神谕  /  Ctrl+S 保存  /  F1 设置  /  Esc 主菜单"))
 
 	_play_screen_reveal(vertical)
+	if is_instance_valid(oracle_input):
+		oracle_input.grab_focus()
 
 
 func _build_top_bar() -> Control:
@@ -493,6 +511,13 @@ func _system_chip(label_text: String, value_text: String) -> Control:
 	row.add_spacer(false)
 	row.add_child(_label(value_text, 16, palette.gold))
 	return chip
+
+
+func _controls_hint(text: String) -> Control:
+	var hint := _panel(999, Color(1, 1, 1, 0.05))
+	var label := _label(text, 14, palette.muted, HORIZONTAL_ALIGNMENT_CENTER, true)
+	hint.add_child(label)
+	return hint
 
 
 func _build_report_panel() -> Control:

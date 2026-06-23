@@ -17,6 +17,9 @@ const project = await read("godot/project.godot");
 assert.match(project, /config\/name="God Is Offline"/);
 assert.match(project, /run\/main_scene="res:\/\/scenes\/main\.tscn"/);
 assert.match(project, /window\/size\/viewport_width=1600/);
+assert.match(project, /open_settings/);
+assert.match(project, /focus_oracle/);
+assert.match(project, /go_back/);
 
 const scene = await read("godot/scenes/main.tscn");
 assert.match(scene, /res:\/\/scripts\/main_controller\.gd/);
@@ -61,6 +64,8 @@ assert.match(mainScript, /Subscription Key/);
 assert.match(mainScript, /测试 AMD 连接/);
 assert.match(mainScript, /_build_city_projection_panel/);
 assert.match(mainScript, /圣玻璃城战略投影/);
+assert.match(mainScript, /_controls_hint/);
+assert.match(mainScript, /focus_oracle/);
 
 const engineScript = await read("godot/scripts/oracle_engine.gd");
 assert.match(engineScript, /class_name OracleEngine/);
