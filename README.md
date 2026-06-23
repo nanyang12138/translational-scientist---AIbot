@@ -66,6 +66,32 @@ http://127.0.0.1:8787/resolve
 OPENAI_API_KEY=你的key npm run start:agent
 ```
 
+使用 AMD LLM Gateway OpenAI/GPT endpoint（来自 Hermes 文档）:
+
+```bash
+LLM_PROVIDER=amd-openai \
+AMD_LLM_GATEWAY_KEY=<your-subscription-key> \
+LLM_GATEWAY_USER=<your-user> \
+npm run start:agent
+```
+
+默认会使用:
+
+```text
+LLM_BASE_URL=https://llm-api.amd.com/OpenAI
+LLM_MODEL=gpt-5.5
+LLM_API_KEY=placeholder-key
+```
+
+说明:
+
+- AMD gateway 认证靠 `Ocp-Apim-Subscription-Key`,也就是 `AMD_LLM_GATEWAY_KEY`。
+- `api_key` 只是 placeholder,任意非空字符串即可。
+- `amd-openai` 不会读取 `OPENAI_API_KEY` 或 `LLM_API_KEY`,避免把其它 provider 的真实 key 发给 AMD gateway。
+- 如需自定义 placeholder,可设置 `AMD_OPENAI_PLACEHOLDER_KEY`。
+- 如果使用 GPT/Codex 模型,优先使用 `/OpenAI` endpoint。
+- 如果连接失败且诊断显示 DNS/timeout,通常需要 AMD VPN/内网 DNS。
+
 使用 LLM gateway / AMD OnPrem 风格 OpenAI-compatible API:
 
 ```bash

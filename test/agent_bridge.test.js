@@ -127,6 +127,41 @@ test("agent bridge builds AMD-style OpenAI-compatible gateway request", () => {
   assert.equal(body.response_format, undefined);
 });
 
+test("agent bridge builds AMD Hermes OpenAI gateway defaults", () => {
+  const previous = snapshotEnv([
+    "LLM_PROVIDER",
+    "LLM_BASE_URL",
+    "LLM_API_KEY",
+    "AMD_OPENAI_PLACEHOLDER_KEY",
+    "OPENAI_API_KEY",
+    "LLM_MODEL",
+    "AMD_LLM_GATEWAY_KEY",
+    "LLM_GATEWAY_SUBSCRIPTION_KEY",
+    "LLM_GATEWAY_USER",
+    "LLM_ENABLE_RESPONSE_FORMAT",
+  ]);
+  for (const key of Object.keys(previous)) delete process.env[key];
+  Object.assign(process.env, {
+    LLM_PROVIDER: "amd-openai",
+    OPENAI_API_KEY: "should-not-be-used",
+    LLM_API_KEY: "should-not-be-used-either",
+    AMD_LLM_GATEWAY_KEY: "amd-subscription-placeholder",
+    LLM_GATEWAY_USER: "amd-user",
+  });
+
+  const request = buildOpenAICompatibleRequest({ oracle: "测试", game: {} });
+  const body = JSON.parse(request.init.body);
+  restoreEnv(previous);
+
+  assert.equal(request.url, "https://llm-api.amd.com/OpenAI/chat/completions");
+  assert.equal(request.init.headers.Authorization, "Bearer placeholder-key");
+  assert.equal(request.init.headers["Ocp-Apim-Subscription-Key"], "amd-subscription-placeholder");
+  assert.equal(request.init.headers.user, "amd-user");
+  assert.equal(body.model, "gpt-5.5");
+  assert.equal(body.temperature, 1);
+  assert.equal(body.response_format, undefined);
+});
+
 test("agent bridge supports chat completions path and full URL overrides", () => {
   const previous = snapshotEnv([
     "LLM_PROVIDER",

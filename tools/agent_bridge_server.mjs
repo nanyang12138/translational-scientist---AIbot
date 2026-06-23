@@ -164,11 +164,14 @@ function sanitizeMemories(memories) {
 }
 
 export function buildOpenAICompatibleRequest({ oracle = "test", game = {}, model = getModelName(), provider = getProvider() } = {}) {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
+  const apiKey =
+    provider === "amd-openai"
+      ? process.env.AMD_OPENAI_PLACEHOLDER_KEY || "placeholder-key"
+      : process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
   if (!apiKey && provider !== "gateway") {
     throw new Error("OPENAI_API_KEY or LLM_API_KEY is required for LLM_PROVIDER=openai");
   }
-  const baseUrl = process.env.LLM_BASE_URL || "https://api.openai.com/v1";
+  const baseUrl = getOpenAICompatibleBaseUrl(provider);
   const headers = {
     "Content-Type": "application/json",
     ...getAuthHeaders(apiKey),
@@ -274,8 +277,9 @@ function getAuthHeaders(apiKey) {
 
 function parseExtraHeaders() {
   const headers = {};
-  if (process.env.LLM_GATEWAY_SUBSCRIPTION_KEY) {
-    headers["Ocp-Apim-Subscription-Key"] = process.env.LLM_GATEWAY_SUBSCRIPTION_KEY;
+  const subscriptionKey = process.env.LLM_GATEWAY_SUBSCRIPTION_KEY || process.env.AMD_LLM_GATEWAY_KEY;
+  if (subscriptionKey) {
+    headers["Ocp-Apim-Subscription-Key"] = subscriptionKey;
   }
   if (process.env.LLM_GATEWAY_USER) {
     headers.user = process.env.LLM_GATEWAY_USER;
@@ -508,8 +512,9 @@ function isAllowedOrigin(request) {
 
 function getProvider() {
   const provider = (process.env.LLM_PROVIDER || "").toLowerCase();
-  if (provider === "openai" || provider === "gateway" || provider === "azure" || provider === "ollama" || provider === "mock") return provider;
+  if (provider === "openai" || provider === "gateway" || provider === "amd-openai" || provider === "azure" || provider === "ollama" || provider === "mock") return provider;
   if (process.env.AZURE_OPENAI_ENDPOINT) return "azure";
+  if (process.env.AMD_LLM_GATEWAY_KEY) return "amd-openai";
   if (process.env.LLM_BASE_URL && (process.env.LLM_GATEWAY_SUBSCRIPTION_KEY || process.env.LLM_EXTRA_HEADERS_JSON)) return "gateway";
   if (process.env.OPENAI_API_KEY || process.env.LLM_API_KEY) return "openai";
   if (process.env.OLLAMA_BASE_URL) return "ollama";
@@ -522,8 +527,15 @@ function getModelName() {
   if (provider === "azure" && process.env.AZURE_OPENAI_DEPLOYMENT) return process.env.AZURE_OPENAI_DEPLOYMENT;
   if (provider === "ollama") return "llama3.1";
   if (provider === "openai") return "gpt-4o-mini";
+  if (provider === "amd-openai") return "gpt-5.5";
   if (provider === "gateway") return "GPT-oss-20B";
   return "mock-agent";
+}
+
+function getOpenAICompatibleBaseUrl(provider) {
+  if (process.env.LLM_BASE_URL) return process.env.LLM_BASE_URL;
+  if (provider === "amd-openai") return "https://llm-api.amd.com/OpenAI";
+  return "https://api.openai.com/v1";
 }
 
 function normalizeText(value) {

@@ -11,7 +11,7 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
 - **Dependencies**: none beyond Node.js and Python 3 available in the environment.
 - **Godot core code**: `godot/scripts/oracle_engine.gd` contains the local agent/world-state runtime plus LLM-output validation/merge; `godot/scripts/main_controller.gd` builds the desktop control-room UI; `godot/scripts/llm_agent_client.gd` calls the local Agent Bridge; `godot/scripts/save_system.gd` handles local saves.
 - **Godot data**: `godot/data/game_config.json` and `godot/data/factions.json`.
-- **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for OpenAI-compatible APIs, custom gateway/LLM Gate endpoints, Azure OpenAI, Ollama, or mock mode. This keeps API keys out of the Godot client.
+- **LLM bridge**: `tools/agent_bridge_server.mjs` runs a localhost bridge for AMD LLM Gateway OpenAI endpoint (`amd-openai`), OpenAI-compatible APIs, custom gateway/LLM Gate endpoints, Azure OpenAI, Ollama, or mock mode. This keeps API keys out of the Godot client.
 - **Tests/validation**: `test/game.test.js` uses Node's built-in test runner for the JS reference runtime; `tools/validate_godot_project.mjs` validates Godot project structure and data.
 
 ### Development commands
@@ -31,6 +31,17 @@ This repository contains **God Is Offline**, an agent-native narrative strategy 
   ```bash
   OPENAI_API_KEY=... npm run start:agent
   ```
+
+  Or with AMD LLM Gateway OpenAI/GPT endpoint from the Hermes guide:
+
+  ```bash
+  LLM_PROVIDER=amd-openai \
+  AMD_LLM_GATEWAY_KEY=<your-subscription-key> \
+  LLM_GATEWAY_USER=<your-user> \
+  npm run start:agent
+  ```
+
+  `amd-openai` defaults to `https://llm-api.amd.com/OpenAI`, model `gpt-5.5`, and `placeholder-key`; it does not reuse `OPENAI_API_KEY` or `LLM_API_KEY`.
 
   Or with Ollama:
 
