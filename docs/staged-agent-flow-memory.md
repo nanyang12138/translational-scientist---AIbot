@@ -144,7 +144,99 @@ config_gen → compile → elaboration → run(testcase) → check(数据正确�
 
 ---
 
-## 9. 落地路线（务实版）
+## 9. 每阶段的"读取与产出"机制（核心）
+
+架构层面说清楚"每阶段分析并存储"之后，真正的硬骨头在机制层面：
+**（1）海量信息里怎么捞针？（2）上游存的东西，下游到底怎么真正用上？** 本节回答这两点。
+
+### 9.1 三条底层原则
+
+**原则 1：确定性预筛在前，LLM 只看被捞出来的"针"。**
+绝不能把原始日志整个塞给 Agent。分两趟：
+
+```
+第 1 趟（确定性、无 LLM、几毫秒）：
+    正则/规则扫日志 → 抓 exit code、错误标记、"cannot find/undefined/missing" 等
+    → 输出很小的"候选集"（几行~几十行）
+
+第 2 趟（LLM 推理）：
+    只把候选集 + 相关上游记录喂给 Agent → 判断根因
+```
+
+海里捞针是预筛脚本干的，不是 LLM 干的。这同时解决"信息太多"和"成本太高"。预筛规则越用越准，**这些错误指纹本身就是方法学 skill 的一部分**。
+
+**原则 2：每阶段存"它产出了什么"（provenance），下游按"输入 ← 产出"链回溯。**
+flow 本质是产物传递链：
+
+```
+publish:      src/*.sv          → out/*.sv                （产出：发布清单）
+rgb build:    out/ + filelists  → 编译文件集 + filelist    （产出：解析后的文件清单）
+vcs compile:  filelist + defines → simv                   （产出：simv + 警告集）
+simulation:   simv + seed/args  → pass/fail               （产出：结果 + failure signature）
+```
+
+**当某阶段因"输入不对"而挂，罪魁往往是上一阶段的"产出"。** 下游失败时 Agent 的核心动作：
+把出问题的"东西"（文件/模块/信号）沿链条往上追，查上游记录里它是怎么被产出的。
+这就是上游记录"有用"的唯一正确姿势——存的是**产出与解析决策**，不是感想。
+
+**原则 3：通过 = 廉价记录，失败 = 深度分析。**
+- 阶段**通过**：只做确定性廉价记录（清单、警告、config），基本不动 LLM——给未来的"存款"。
+- 阶段**失败**：才启动完整 LLM 分析，并拉取相关上游存款。
+
+### 9.2 逐阶段拆解（以本项目 testcase flow 为例）
+
+flow：① makefile publish（src→out）② rgb build（收集文件）+ vcs compile ③ simulation
+
+**阶段 1：makefile publish（范围小）**
+- 失败模式：源文件缺失、权限、磁盘满、target/依赖错。
+- 怎么读：预筛抓 `make: *** [target] Error` + 其上方实际报错，定位到哪个 target/文件。
+- 输出：哪个文件没发布成功 + 原因 + 建议。
+- 存款：**发布清单**（out/ 落了哪些文件、有无 skip/warning）——rgb build 失败时的救命对照物。
+
+**阶段 2a：rgb build（海量信息）**
+- 核心认知：收集成功的上千个文件都不重要，只找**没收集成功的那一个 + 它的来历**。不要理解整个 build。
+- 怎么读：拿 exit code + rgb build 自己的错误标记（首次接入时把它的 error 文法学下来，之后就是规则匹配），抓出**哪个 filelist 条目/文件路径没解析成功**。
+- 输出：哪个文件/模块没收到 + 应来自哪个 filelist 条目/src 路径。
+- 跨阶段（原则 2 兑现）：报"找不到 `axi_slave.sv`" → 查**阶段 1 发布清单** → 发现 publish 根本没发出它（甚至留过 skip 警告）→ 根因在 publish，不在 rgb build。
+- 强力技巧：与**上次成功的 build 清单做差集** → 只分析"这次比上次少了/变了哪个文件"，不分析全集。
+
+**阶段 2b：vcs compile**
+- 失败模式：语法错、module 未定义、端口/类型不匹配、缺 package、宏/define。
+- 怎么读：VCS 错误高度结构化（`Error-[SE]`、`Error-[IND]`、`Error-[MPD]`… 带 file:line）。抽所有 `Error-[XXX]`，**只看第一个**（常一个根因级联几十条），按 code 分类。
+- 输出：第一个根因错误的 code + file:line + 一句话解释 + 是真 RTL/TB bug 还是文件问题。
+- 跨阶段（用 rgb build 产出）：报"module `foo` not found / `bar.sv` 找不到"→ 查 **rgb build 的 filelist**：
+  - A：`bar.sv` 不在收集清单 → 上游漏收，不是 RTL bug。
+  - B：`foo` 来自旧分支/旧路径 → 版本错，清单里路径/版本一目了然。
+  - 于是输出"这不是编译 bug，是 rgb build 漏收/收错版本"，而不是让人去 debug 一段其实没错的 RTL。
+
+**阶段 3：simulation**
+- 失败模式：`UVM_ERROR/FATAL`、断言、scoreboard mismatch、超时/hang、X 传播、TB crash。
+- 怎么读：预筛抓 `UVM_ERROR/FATAL`、`Assertion failed`、**第一条**出错时间戳附近片段；波形按需用工具抽指定信号，不直接读。
+- 输出：failure signature + 失败时间点 + TB/DUT 初判 + 复现命令（seed/plusargs）。
+- 跨阶段（用 compile 产出，即使 compile 通过也要按原则 3 廉价存）：
+  - **被降级的编译警告**：`width mismatch`/`implicit net`/`sensitivity list incomplete` 等，sim 数据错时若正好涉及同一信号 → 直接指向根因。
+  - **编译的 +define+ / 模式**：如 `+define+ASYNC_MODE`，sim 失败若配置相关，立刻知道往 CDC 方向查。
+  - 即：sim 的很多"莫名其妙"，在 compile 阶段早有征兆，存下来即成先验线索。
+
+### 9.3 两个贯穿全程的"捞针"技巧
+
+1. **抓第一个错误，不是最后一个。** build/compile 级联错误常见，最后 N 行多是余震，第一条才是震源（与"看日志尾巴"的习惯相反）。
+2. **和"上次成功"做差集。** 收集类/环境类失败，最快定位不是读全量，而是对比 last-known-good；前提是跨 run 存了成功记录。
+
+### 9.4 于是"每阶段存什么"就清楚了
+
+| 阶段 | 通过时廉价存（存款） | 失败时深度分析产出 |
+|---|---|---|
+| publish | 发布清单（哪些文件落到 out、skip/warning） | 哪个文件没发布 + 原因 |
+| rgb build | 解析后的文件清单（文件→来源路径/版本） | 哪个文件没收到 + 来历 + 与上次差集 |
+| vcs compile | 编译命令 + defines + **全部警告** + simv | 第一个根因错误 + 是否文件问题（查上游清单） |
+| simulation | test/seed/plusargs + 结果 | failure signature + 借编译警告/模式做先验 |
+
+每一栏的"存款"都不是给自己看的，是给下游当"回溯对照物"用的——上游记录才真正有用，而非存了个寂寞。
+
+---
+
+## 10. 落地路线（务实版）
 
 ```
 ① test/stage manifest 生成         ← 今天就能做，立刻省掉"重复解释"
@@ -159,7 +251,7 @@ config_gen → compile → elaboration → run(testcase) → check(数据正确�
 
 ---
 
-## 10. 待确认（开工前）
+## 11. 待确认（开工前）
 
 1. flow 各阶段是**独立脚本 / Makefile 串起来**的，还是在一个大框架里跑？（决定 hook 怎么插）
 2. flow memory 倾向**每个 run 一个本地目录 / 文件**，还是要能**跨 run 长期积累、跨项目复用**？（决定存储层设计）
