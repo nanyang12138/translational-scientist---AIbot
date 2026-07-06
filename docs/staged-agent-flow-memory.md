@@ -1,0 +1,174 @@
+# 阶段式 Agent + Flow 记忆：把 AI 嵌进芯片验证流程的设计记录
+
+> 本文档整理自一次关于"如何把 AI 嵌套进验证 flow"的讨论。核心结论：不要在 flow 末端才叫 Agent 救火，而是让 Agent **常驻在每个阶段、趁热分析并存储**，下游出问题时**直接调用上游存好的分析**做跨阶段根因定位。
+
+---
+
+## 1. 起点：真正的痛点是什么
+
+现状流程：
+
+```
+跑程序 → 出问题 → 打开 AI → 从头解释"我在做什么、跑到哪了、报了什么错" → AI 才开始帮忙
+```
+
+浪费时间的地方**不在于 AI 不够聪明，而在于每次求助都要重新建立"上下文"**。AI 默认是"无状态"的：不知道进度、不知道环境、不知道上一步做了什么。所以每次求助都在做"考前重新补课"。
+
+要解决的核心是三个字：**上下文（context）**。让 AI 随时"在场"，而不是"被叫来"。
+
+---
+
+## 2. 能力拆解：这件事其实是三块
+
+把"AI 嵌进 flow"这个笼统需求拆成工程上三件不同的事：
+
+| # | 能力 | 解决的问题 | 对应概念 |
+|---|---|---|---|
+| 1 | **Skill（技能 / 知识）** | AI 知不知道"该怎么做" | Agent Skills |
+| 2 | **State awareness（状态感知）** | AI 知不知道"你跑到哪了" | MCP / Context engineering |
+| 3 | **Observability + Trigger（可观测 + 主动触发）** | 出问题它能不能"自己知道" | Ambient agents |
+
+一句话区分：**Skill 解决"会不会做"，State awareness 解决"知不知道你现在的状态"，二者缺一不可。**
+
+---
+
+## 3. 相关技术谱系（这不是孤立点子）
+
+- **Agent Skills**：把领域知识 / 流程打包成 AI 可加载的技能。
+- **MCP（Model Context Protocol）**：让 AI 标准化地"读取工具 / 数据 / 状态"的协议，可实时接到 flow 的状态源。
+- **Ambient agents / 环境智能体**：不需每次召唤、常驻工作环境、被事件驱动的智能体。
+- **Context engineering（上下文工程）**：把"对的信息在对的时刻喂给模型"，被认为比 prompt engineering 更重要。
+- **Blackboard architecture（黑板架构）**：经典 AI 模式——多个阶段把发现写到共享"黑板"，后续阶段读取协同推理。本设计可视为"LLM 时代的黑板架构"。
+- **Agent memory / 持久化记忆**：让 agent 跨步骤累积、检索自己的分析。
+- **Provenance / lineage（数据血缘）**：EDA/数据领域记录"每一步怎么来的"，但通常只记数据、不记推理。本设计的增量是给血缘**挂上 Agent 的判断**。
+
+---
+
+## 4. 落地领域：芯片验证 flow
+
+场景：跑 testcase、跑 regression、用工具看结果（波形 / 覆盖率 / log）、验证数据正确性。
+
+调试信息高度结构化，但散落各处：
+
+| 信息源 | 现在的形态 | 对 AI 的问题 |
+|---|---|---|
+| 仿真 log | `UVM_ERROR/FATAL`、断言、backtrace | 几万行，人肉 grep |
+| Regression 报告 | pass/fail、seed、runtime、config | 分散在 vManager / 自制脚本 / csv |
+| 波形 | FSDB/VCD（二进制） | AI 读不了，得先抽信号 |
+| 覆盖率 | coverage db / 报告 | 需要工具查询 |
+| 数据正确性 | golden vs actual、scoreboard | 判断逻辑在人脑里 |
+
+---
+
+## 5. 核心设计：阶段式 Agent + Flow 记忆（本讨论的重点）
+
+**关键区别：不是末端救火，而是 Agent 在每个阶段都存在。**
+
+### 5.1 两个机制
+
+1. **Eager analysis（趁热分析）**：每个固定阶段结束时，Agent 立刻对"本阶段发生了什么"做一次分析并**结构化存储**——存的是它的**判断和推理**（本阶段正常吗？哪些值不寻常但暂时 ok？基于什么假设？），而不仅是原始数据。
+2. **Cross-stage retrieval（跨阶段回溯）**：下游阶段出问题时，Agent 不从零开始，而是**调出上游各阶段存好的分析**，做跨阶段根因定位。
+
+### 5.2 为什么这个设计明显更好（核心洞察）
+
+芯片验证的残酷现实：**下游阶段暴露的 bug，根因常在两三个阶段之前**——config 生成时的非默认值、elaboration 的一条被忽略的 warning、编译参数等。
+
+- 传统"末端救火"：出问题时上游上下文要么丢了、要么要花大力气重建 → 这正是"浪费时间"的根源。
+- "趁热分析"的精髓：**在阶段 2 解释"这个 config 为什么正常"是很便宜的**（信息都在手边、还热着）；等阶段 5 挂了再回去重建阶段 2 的上下文，又贵又失真。
+
+> **本质：不是削减 AI 调用，而是把 AI 的分析放到"成本最低、信息最全"的时刻去做，换来一条高保真、可随取随用的"推理轨迹"。**
+
+---
+
+## 6. 具体设计
+
+### 6.1 核心数据结构：每阶段一份"阶段分析记录"
+
+```json
+{
+  "run_id": "regr_2026_0706_a",
+  "stage": "elaboration",
+  "stage_index": 3,
+  "timestamp": "...",
+  "judgment": "warning",              // normal / warning / abnormal
+  "summary": "elab 通过，但 clk_gen 有一条 multi-driver warning 被降级处理",
+  "flags": [                          // ← 专门留给下游的"线索"
+    {"key": "clk_gen.multi_driver", "value": "W123", "note": "本次没报错但值得留意，改了时钟树"},
+    {"key": "cfg.ASYNC_MODE", "value": true, "note": "非默认，跨时钟域路径变多"}
+  ],
+  "assumptions": ["假设 ASYNC_MODE 下 CDC 约束已正确加载"],
+  "artifacts": {"log": "/regr/.../elab.log"},
+  "confidence": 0.75
+}
+```
+
+关键不是 log 路径，而是 **`flags` 和 `assumptions`**——Agent 趁热留给"未来自己"的便签。
+
+### 6.2 沿 flow 的阶段划分
+
+每个阶段结束挂一个 hook，触发一次分析并 append 到 flow memory：
+
+```
+config_gen → compile → elaboration → run(testcase) → check(数据正确性) → coverage
+     └ 每一步：Agent 分析当前阶段 → 写一条 stage record → 存入 flow memory
+```
+
+### 6.3 三个核心组件（骨架）
+
+1. **`stage_hook`**：在任意阶段收尾时调用，让 Agent 分析并生成一条 stage record。
+2. **`flow_memory`**：append + 按 `key` / `stage` 检索的存储层（JSONL 起步，量大了再上带检索的库）。
+3. **`recall`**：出问题时按相关性拉取上游记录（涉及的信号 / 模块 / 字段），组织成给模型的上下文。
+
+集成方式：只需在自己 flow 的每个阶段脚本末尾插一行 `stage_hook(...)`，对现有仿真流程**零侵入**（只"读"，不改仿真本身）。
+
+---
+
+## 7. 端到端示例（把价值讲透）
+
+**传统模式：**
+> check 阶段 scoreboard mismatch → grep run.log → 看波形 → 怀疑 CDC → 回头翻 elab.log 找 warning → 半天过去了。
+
+**阶段式 Agent 模式：**
+> check 阶段 mismatch → Agent 拉出 flow memory → 发现 elab 阶段自己留过便签"ASYNC_MODE 下 CDC 约束存疑" → 直接给出："mismatch 大概率是 CDC 亚稳态，根因在 elab 阶段那条被降级的 multi_driver warning，建议检查 clk_gen 约束"。
+
+**上游的分析成了下游的答案。**
+
+---
+
+## 8. 关键设计注意点
+
+- **每阶段做轻量分析**，只重点记 `flags`（对下游可能有用的异常 / 非默认值 / 假设），不要记流水账，否则 memory 被噪声淹没、成本失控。
+- **让 Agent 显式判断"这条以后可能有用吗"**，只存有信号价值的内容。
+- **检索按相关性过滤**（涉及的信号 / 模块 / 字段），不要把整条历史全塞回模型。
+- 目标：flow memory 是"高信噪比的推理轨迹"，而不是又一堆没人看的 log。
+
+---
+
+## 9. 落地路线（务实版）
+
+```
+① test/stage manifest 生成         ← 今天就能做，立刻省掉"重复解释"
+② log 精炼 / failure signature 提取 ← 让 AI 读得懂 log
+③ 2~3 个核心 MCP 工具              ← get_log_tail / compare_golden / get_signal_value
+④ 方法学 skill（先写 1 类失败）     ← 从最常见的失败类型开始
+⑤ 阶段式 Agent + flow memory       ← stage_hook / flow_memory / recall
+⑥ regression 触发预诊断（ambient） ← 最后再接自动化
+```
+
+建议先打通 ①②③ 与 ⑤ 的最小闭环，单次 debug 效率即可翻倍，且对现有 flow 近乎零侵入。
+
+---
+
+## 10. 待确认（开工前）
+
+1. flow 各阶段是**独立脚本 / Makefile 串起来**的，还是在一个大框架里跑？（决定 hook 怎么插）
+2. flow memory 倾向**每个 run 一个本地目录 / 文件**，还是要能**跨 run 长期积累、跨项目复用**？（决定存储层设计）
+3. 仿真器：VCS / Xcelium / Questa？（影响 log 格式与 signature 正则）
+4. regression 怎么跑：vManager / 自制脚本 + LSF/SGE？结果落在哪（csv / db / 目录）？
+5. 波形 / 覆盖率工具：Verdi(FSDB) / DVE / SimVision？
+6. 验证框架是否 UVM？失败主要看 `UVM_ERROR` / scoreboard，还是有自制 checker？
+7. AI 出现的形态：命令行 `ask "为什么这个 test fail"` / 嵌在脚本 / 后台常驻助手？
+
+---
+
+_文档状态：设计讨论记录（待细化为可运行骨架）。_
