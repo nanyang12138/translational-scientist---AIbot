@@ -790,6 +790,210 @@ LLM 看到：
 
 这就是一个可以开始落地的方向。
 
+## 如何证明它不是概念包装
+
+这里需要非常警惕一个问题：如果最后做出来的东西只是“把更多材料塞进 prompt，然后让 LLM 回答”，那它和普通聊天机器人没有本质区别。
+
+因此，真正的问题不是“我们能不能讲出一个新概念”，而是：
+
+> 它比当前的 LLM wrapper 到底强在哪里？效果如何体现？怎么证明它是真的？
+
+### 1. 如果只是把全部上下文塞进 prompt，就没有区别
+
+普通方式是：
+
+```text
+RTL / log / regression / spec
+  ↓
+人工总结或直接粘贴到 prompt
+  ↓
+LLM 猜测 root cause
+  ↓
+工程师继续人工验证
+```
+
+这仍然是聊天式推理。它的问题包括：
+
+- 每一轮近似重新开始；
+- 不真正维护 regression 历史；
+- 不知道哪些动作已经试过；
+- 不知道哪个证据支持哪个判断；
+- 不能自动验证自己的假设；
+- 容易重复建议；
+- 输出可能合理，但不可追踪。
+
+我们要做的东西必须不同：
+
+```text
+工程材料
+  ↓
+自动解析成结构化状态
+  ↓
+系统维护失败、证据、历史动作和不确定性
+  ↓
+LLM 只处理当前 active workspace
+  ↓
+系统执行验证动作
+  ↓
+结果回写 world state
+```
+
+本质区别是：
+
+> AI 不再只是回答问题，而是维护一个持续更新的工程状态机。
+
+### 2. 真正差异：状态式工程推理
+
+普通 LLM 是“对话式推理”。我们想做的是“状态式工程推理”。
+
+| 普通 LLM | Verification Cognitive Agent |
+|---|---|
+| 输入是 prompt | 输入是工程对象 |
+| 输出是回答 | 输出是证据化状态更新 |
+| 每轮近似重新开始 | 持续维护 world state |
+| 靠上下文窗口记忆 | 靠结构化 memory / state |
+| 建议不可验证 | 假设绑定验证动作 |
+| 容易重复 | action history 防止重复 |
+| log 是文本 | log 是可索引 evidence |
+| 工程师人工组织上下文 | 系统自动组织上下文 |
+
+真正的优势不在“模型更聪明”，而在：
+
+> 系统能把每次工程观察、判断、验证和失败都变成下一次推理可复用的状态资产。
+
+### 3. 第一个可见 demo：Regression Failure Cognitive Triage
+
+第一个原型不应该做成大而全的系统，而应该只解决一个具体问题：
+
+> 给定 regression failure，系统能否比普通 LLM 更快、更可追踪地定位可疑 root cause，并提出最小验证动作？
+
+输入可以是：
+
+```text
+1. regression logs
+2. failing testcase 列表
+3. git diff / commit history
+4. 相关 RTL 文件
+5. spec 片段
+```
+
+系统输出应该是：
+
+```text
+1. failure clusters
+2. suspected root cause
+3. supporting evidence
+4. first suspicious commit
+5. related RTL module / signal
+6. next minimal rerun command
+7. confidence / uncertainty
+8. action history
+```
+
+如果这个 demo 不能比直接问 LLM 更清楚、更可追踪、更少重复，那这个方向就没有实际价值。
+
+### 4. 如何衡量效果
+
+必须用指标证明，而不是用概念证明。
+
+可以比较两种方式：
+
+```text
+Baseline:
+  工程师把 log / spec / diff 粘给普通 LLM，问 root cause。
+
+Proposed:
+  系统先构建 design_index、regression_state、failure_clusters、
+  evidence_graph、action_history，再让 LLM 在 active workspace 中推理。
+```
+
+可观测指标包括：
+
+- root cause 命中率；
+- triage 时间；
+- 需要人工阅读的 log 行数；
+- 重复无效动作次数；
+- rerun 次数；
+- 证据链是否可追踪；
+- 能否指出最小复现 / rerun 命令；
+- 能否定位 first suspicious commit；
+- 下次类似 failure 是否更快；
+- 工程师是否能信任和复核系统结论。
+
+如果这些指标没有改善，就说明它只是概念包装。
+
+### 5. 最小系统结构
+
+第一版可以非常小，不需要训练新模型：
+
+```text
+/verification-agent
+  /inputs
+    regression.log
+    failing_tests.txt
+    git_diff.patch
+    rtl/
+    spec.md
+
+  /state
+    design_index.json
+    regression_state.json
+    failure_clusters.json
+    evidence_graph.json
+    action_history.json
+
+  /tools
+    parse_log.py
+    cluster_failures.py
+    map_signal_to_rtl.py
+    inspect_git_diff.py
+    propose_rerun.py
+
+  /agent
+    active_workspace_builder.py
+    planner_prompt.md
+```
+
+这里的核心不是 UI，也不是 prompt，而是 state。
+
+### 6. 预期效果应该体现在哪里
+
+系统的优势应该体现在非常具体的工程体验上：
+
+```text
+以前：
+  工程师读很多 log，手动找 failure pattern，手动追 diff，
+  手动猜可能模块，再问 LLM 或同事。
+
+以后：
+  系统自动聚类 failure，关联最近 diff，指出相关 RTL / signal，
+  给出证据链，建议最小 rerun，并记录哪些动作已经尝试过。
+```
+
+也就是说，它应该减少：
+
+- 重新整理上下文的成本；
+- 重复 debug；
+- 无证据猜测；
+- 反复运行无效 testcase；
+- 只靠工程师记忆维护状态的负担。
+
+并增加：
+
+- 可追踪证据；
+- 可复核判断；
+- 可继承的 debug history；
+- 下一步行动的明确性；
+- 团队知识积累。
+
+### 7. 当前最小结论
+
+这个系统的优势不是“它更像人脑”，而是：
+
+> 它能减少工程师重新整理上下文的成本，减少重复 debug，提供可追踪证据，并把每次验证结果变成下一次推理的状态资产。
+
+如果做不到这一点，就不值得继续。
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
