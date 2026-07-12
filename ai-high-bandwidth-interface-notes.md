@@ -1304,6 +1304,141 @@ High-dimensional engineering world
 
 LLM 是引擎，但不是容器；语言是控制入口，但不是全部输入；agent 是后续执行层，但不是第一性核心。
 
+## 范式与应用场景的关系
+
+这里必须再次澄清：芯片验证不是最终目标本身，它只是我们选择的第一个应用场景。
+
+真正要探索的是一种范式：
+
+> 如何让高维现实对象不再被压扁成 prompt，而是进入一个可计算、可对齐、可查询、可验证、可持续更新的高维工作空间，再由 LLM / LMM 作为解释、规划和交互引擎。
+
+芯片验证只是这个范式的一个特别好的实验场，因为它同时具备：
+
+- 多源输入：RTL、testbench、log、waveform、coverage、spec、git diff；
+- 高复杂度：信号、状态机、协议、时序、工具链彼此耦合；
+- 强证据要求：结论必须能追溯到 log、waveform、diff、spec；
+- 可验证反馈：可以 rerun testcase、跑 regression、查 coverage、做 formal；
+- 长期状态：历史 bug、历史修复、历史失败模式具有复用价值；
+- 高成本上下文整理：工程师大量时间花在重建上下文和排查重复问题上。
+
+因此，芯片验证不是因为它是唯一目标，而是因为它可以作为 high-to-high 范式的 stress test。
+
+### 1. 范式本体是什么
+
+范式本体不是：
+
+```text
+芯片验证 agent
+```
+
+而是：
+
+```text
+High-to-High Workspace Paradigm
+```
+
+它的通用结构是：
+
+```text
+Domain Objects
+  ↓
+Domain Encoders
+  ↓
+Shared Latent / Structured Workspace
+  ↓
+Evidence Projection
+  ↓
+LLM / LMM Explanation and Planning
+  ↓
+Action / Verification Feedback
+  ↓
+Workspace Update
+```
+
+在芯片验证里，Domain Objects 是 RTL、log、waveform、coverage。
+
+在科研里，Domain Objects 可以是论文、图表、数据、实验记录、代码、引用网络。
+
+在软件工程里，Domain Objects 可以是代码 AST、测试失败、日志、issue、PR diff、runtime traces。
+
+在医学里，Domain Objects 可以是影像、化验结果、病历、时间序列、诊断假设、指南。
+
+真正共通的是：
+
+> 高维对象先进入领域 workspace，而不是先被压成 prompt。
+
+### 2. 芯片验证在这个范式中的角色
+
+芯片验证是第一个落地场景，用来回答：
+
+```text
+这种范式是否比 direct prompt 更适合复杂、高维、证据密集、可验证的工程任务？
+```
+
+它不是为了做一个普通 EDA automation bot，而是为了验证以下通用假设：
+
+1. **表示假设**
+   领域对象保留结构后，比压缩成文本更有用。
+
+2. **对齐假设**
+   不同对象之间的关联，例如 log ↔ signal ↔ RTL diff ↔ spec，可以在 workspace 中稳定表示。
+
+3. **证据假设**
+   LLM 基于 evidence packet 输出，比直接读长 prompt 更可追踪、更可信。
+
+4. **反馈假设**
+   每次验证动作的结果回写 workspace 后，系统会随着使用变得更有效。
+
+5. **迁移假设**
+   如果芯片验证场景成立，同样的范式可以迁移到科研、软件工程、复杂设计和其他知识工作。
+
+### 3. 它不是只做“验证”
+
+“验证”在这里有两层意思：
+
+```text
+芯片验证：
+  具体应用场景，例如 regression、coverage、waveform、formal。
+
+范式验证：
+  验证 high-to-high workspace 是否真的优于 direct prompt。
+```
+
+我们做芯片验证，不是把项目限制成一个 verification 工具，而是用 verification 作为范式的实验环境。
+
+因为芯片验证非常适合检验这个范式：
+
+- 它有真实复杂度；
+- 它有严格证据链；
+- 它有可测量结果；
+- 它有重复任务；
+- 它有大量跨模态工程对象；
+- 它能清楚比较 direct prompt 和 workspace 方法的差异。
+
+### 4. 更准确的项目表述
+
+当前项目不应该表述为：
+
+> 做一个芯片验证 AI agent。
+
+更准确的表述应该是：
+
+> 以芯片验证为第一个实验场，探索一种 high-to-high AI 工作空间范式：将领域高维对象编码到共享 workspace 中，让 LLM / LMM 不再作为全部信息的容器，而作为解释、规划和交互引擎。
+
+### 5. 原型的意义
+
+因此，小原型的目标不是直接做出最终产品，而是验证范式是否成立：
+
+```text
+Direct Prompt:
+  把领域对象压缩成文本后交给 LLM。
+
+Workspace Paradigm:
+  先构建领域 workspace，再把相关 evidence packet 投影给 LLM。
+```
+
+如果 workspace paradigm 在芯片验证中体现出更好的证据追踪、上下文复用、跨对象绑定和反馈更新能力，它就不只是一个 verification tool，而是一种可以推广的交互和认知范式。
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
