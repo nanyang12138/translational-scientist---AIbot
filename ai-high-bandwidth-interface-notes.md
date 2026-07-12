@@ -272,6 +272,275 @@ Level 6：latent-to-latent 通信
 
 > 每一层当前缺什么？可以用现有模型、codec、工具接口和代理循环做到什么？哪些地方需要新的训练方式、系统架构或交互协议？
 
+## 外部已有工作扫描
+
+在真正提出自己的解决方案之前，必须先做一件事：把问题放回已有研究、开源项目、专利和产品实践的脉络中。否则很容易把别人已经解决过的问题重新思考一遍，或者把已有方向误认为空白地带。
+
+这次初步扫描把问题分成三类：
+
+1. **论文与研究方向**：看学术界如何定义问题、训练模型、评测效果。
+2. **GitHub 与开源系统**：看哪些能力已经有可运行原型，哪些还停留在论文。
+3. **专利与产业线索**：看公司正在保护哪些系统结构、交互方式和自动化流程。
+
+需要特别注意的是，“没有看到答案”不等于“答案不存在”。这里应该承认四类状态：
+
+```text
+已知已知：我们知道别人已经做了什么。
+已知未知：我们知道某些方向还缺清晰答案。
+未知已知：别人已经做了，但我们还没发现。
+未知未知：问题空间里还没有被我们意识到的维度。
+```
+
+因此，后续每一步都应该带着 prior-art map 去做，而不是只从自己的直觉出发。
+
+### 1. GUI / computer-use agent：高带宽屏幕输入已经在快速发展
+
+这一类工作直接对应“AI 不应该只听文字，而应该看见和操作环境”。
+
+代表性项目与论文包括：
+
+- **OSWorld**：真实操作系统环境中的多模态 agent benchmark，支持任务初始化、真实 GUI 交互和执行结果评测。
+  GitHub: <https://github.com/xlang-ai/OSWorld>
+- **OmniParser**：微软的屏幕解析工具，把 UI 截图转成结构化、可定位的交互元素，提升纯视觉 GUI agent 的 grounding 能力。
+  GitHub: <https://github.com/microsoft/OmniParser>
+- **UI-TARS / UI-TARS Desktop**：面向 GUI 操作的原生多模态 agent 模型与桌面应用，强调截图理解、鼠标键盘控制、浏览器和本地电脑操作。
+  GitHub: <https://github.com/bytedance/UI-TARS>
+  GitHub: <https://github.com/bytedance/UI-TARS-desktop>
+- **Agent-S**：面向 computer-use 的开放 agent 框架，强调像人一样使用电脑，并结合 grounding、planning、memory 和 benchmark。
+  GitHub: <https://github.com/simular-ai/Agent-S>
+- **ScreenAgent / Auto-GUI**：较早期的屏幕观察、计划、动作、反思循环，用截图和鼠标键盘动作完成多步任务。
+  GitHub: <https://github.com/niuzaisheng/ScreenAgent>
+
+这些工作说明：**高带宽视觉输入 + GUI 行动接口**已经不是空白方向。别人已经在做，而且进展很快。
+
+但它们的局限也明显：
+
+- 很多系统仍然把截图转成文字或结构化描述，再交给 LLM；
+- 多数系统的 world state 还比较浅，主要是当前屏幕和短期历史；
+- 对用户意图、长期偏好、跨应用上下文的建模还不够；
+- 大量能力集中在“操作软件”，还没有上升到通用的高维人机共享状态层。
+
+### 2. 行动验证与自我修正：observe-act-verify loop 已经成为显性方向
+
+这对应“AI 不能只行动，还要检查行动是否真的成功”。
+
+代表性工作包括：
+
+- **STEVE**：Computer-use agent 的 step verification pipeline，用动作前后屏幕验证每一步是否正确，再用这些标签训练 agent。
+- **VLAA-GUI**：强调 Stop、Recover、Search 的 GUI 自动化框架，包含强制 Completeness Verifier 和 Loop Breaker，避免提前宣布完成和循环失败。
+- **VeriGUI**：提出 Thinking-Verification-Action-Expectation 机制，显式建模动作结果、失败检测和自我修正。
+
+这些工作说明：**行动验证循环**已经被明确识别为 GUI agent 的关键问题。
+
+但仍然有缺口：
+
+- 验证往往绑定在 GUI 截图或特定 benchmark 上；
+- 对更复杂的科研、写作、设计、代码、数据分析任务，还缺统一验证协议；
+- verifier 自身的可信度、校准、成本和可解释性仍然是问题；
+- “验证结果如何写回长期世界状态”还没有完全解决。
+
+### 3. 多模态世界模型：已有研究正在把 MLLM 与 world model 结合
+
+这一类工作直接对应“AI 不只看见状态，还要预测行动会如何改变世界”。
+
+代表性方向包括：
+
+- **Dynalang / Learning to Model the World with Language**：把图像、语言、动作压缩到 latent world model 中，学习预测未来 latent，并用于行动。
+- **World Models as an Intermediary between Agents and the Real World**：把 world model 作为 agent 与真实世界之间的中介，用于低成本交互、规划和高成本环境模拟。
+- **Motus**：统一 latent action world model，把理解、视频生成和动作专家整合到一个系统中。
+- **ModularAgent / BiTAgent**：强调 MLLM 语义空间和 world model 动态 latent space 的双向耦合。
+- **LaDi-WM**：用 latent diffusion 预测未来状态，说明在 latent space 中预测比直接预测像素更容易泛化。
+
+这说明：**用 latent world model 承接多模态输入、预测未来、指导行动**已经是明确研究趋势。
+
+但这里也有边界：
+
+- 很多工作集中在机器人、仿真、操作控制，而不是日常知识工作；
+- world model 通常依赖特定环境和动作空间；
+- 与人类用户的意图、解释、协作界面还没有深度统一；
+- “高维世界状态如何被用户理解、修改、信任”仍然没有成熟答案。
+
+### 4. 多感官 embodied AI：视觉之外的感知也有人在做
+
+你的直觉里提到人类不只是用眼睛，还用耳朵、触觉和身体状态理解世界。这个方向也已有研究基础。
+
+代表性工作包括：
+
+- **MultiPLY**：多感官、对象中心的 embodied LLM，把视觉、音频、触觉、热信息、动作 token 和状态 token 放入 3D 交互环境。
+- **TacX**：多模态触觉表示，融合 tactile image、audio、motion、pressure，用于机器人操作。
+- **Audio-Visual World Models**：把视觉和空间音频纳入 world model，用于多感官想象和导航。
+- **Tactile-based Multimodal Fusion Survey**：系统整理视觉、语言、触觉、动作、力和本体感知等融合路线。
+
+这说明“像人一样多感官理解世界”不是没人做，而是已经在 embodied AI 和机器人领域形成分支。
+
+但对普通 AI 工具来说，问题在于：
+
+- 多感官研究多面向机器人硬件，不一定适合软件 agent；
+- 真实触觉、嗅觉、身体感等传感器并不是通用用户环境里随手可得；
+- 对软件世界而言，等价的“多感官”可能不是物理触觉，而是屏幕、DOM、文件系统、日志、代码结构、用户操作轨迹、版本历史等多源信号。
+
+### 5. 语义 codec / token 压缩：别人已经在解决高维输入成本问题
+
+如果要处理高带宽输入，就必须解决压缩问题。这一类研究已经很多。
+
+代表性方向包括：
+
+- **Visual Token Compression**：通过 pooling、merging、pruning、attention-guided selection 等方法减少视觉 token。
+- **DeCo**：把 token 压缩和语义抽象解耦，先保留 patch-level 空间局部性，再让 LLM 做语义抽象。
+- **Token Sequence Compression for Efficient Multimodal Computing**：系统比较视觉 token selection / merging，关注低成本多模态推理。
+- **LLMC+**：VLM 压缩 benchmark 和工具箱，覆盖 token-level 与 model-level compression。
+- **SDComp / Semantically Disentangled Compression**：让 LMM 告诉 codec 什么值得压缩，面向机器任务而不是人眼视觉质量。
+
+这说明：**高带宽输入不等于直接喂原始数据；关键是任务相关语义压缩**。这个判断已经被多篇工作支持。
+
+但还缺一个更高层的问题：
+
+> 当前压缩大多以效率和 benchmark 准确率为目标；我们真正需要的是“面向人机协作任务的语义 codec”，它要保留目标、约束、不确定性、可验证线索和行动相关信息。
+
+### 6. 长期记忆与持续世界状态：已有工作开始从检索走向状态建模
+
+这对应“AI 不应该每次重新读 prompt，而应该维护持续世界状态”。
+
+代表性工作包括：
+
+- **WorldMem**：通过 memory bank 和 state-aware memory attention 保持长期 3D 空间与时间一致性。
+- **M3-Agent**：多模态长期记忆 agent，处理实时视觉和听觉输入，构建 episodic memory 与 semantic memory。
+- **EgoMem**：面向 full-duplex omnimodal 模型的 lifelong memory agent，直接从视听流中识别用户、提取偏好和社会关系。
+- 相关图记忆系统：把 episodic memory、semantic memory、实体关系和时间关系组织成图结构。
+
+这说明：**长期记忆不应该只是向量数据库检索**，而要有实体、时间、状态、事件和语义层级。
+
+仍然存在的缺口：
+
+- 记忆写入标准不清晰，容易污染；
+- 记忆的遗忘、纠错、权限和隐私问题复杂；
+- 多模态记忆如何与即时行动循环结合还不成熟；
+- 记忆如何参与 world state，而不是只作为 RAG 背景材料，仍然需要设计。
+
+### 7. latent-to-latent 通信：已有研究正在绕过自然语言瓶颈
+
+这直接命中你提出的核心问题：为什么模型之间不能交换高维状态，而一定要用低带宽文字？
+
+代表性工作包括：
+
+- **Vision Wormhole**：把 VLM 的视觉输入通道重新理解成连续通信端口，用 Universal Visual Codec 在异构模型之间传输 latent reasoning state。
+  GitHub: <https://github.com/xz-liu/heterogeneous-latent-mas>
+- **Interlat**：让 agent 直接交换最后一层 hidden states，减少自然语言中转，实现 latent-space communication。
+  GitHub: <https://github.com/XiaoDu-flying/Interlat>
+- **LatentMAS** 等相关工作：探索多 agent 在 latent space 中协作。
+
+这说明：**绕过自然语言、直接交换高维表示**已经是一个非常明确的研究方向。
+
+但它距离通用产品还有问题：
+
+- latent 表示难以解释和审计；
+- 不同模型 hidden state 不天然兼容；
+- 高维通信可能传递错误、偏见或不可控信息；
+- 用户很难直接理解 latent 通信中发生了什么；
+- 安全、调试、可恢复性和版本兼容都还没有成熟工程标准。
+
+### 8. 专利与产业线索：公司已经在保护多模态 agent 与界面自动化
+
+专利检索也显示，产业界已经在围绕这些方向布局。需要注意：这里不是法律意见，只是技术线索扫描。
+
+代表性专利/申请包括：
+
+- **US20230178076A1 - Controlling interactive agents using multi-modal inputs**
+  描述用图像 embedding、文本 embedding 和 multimodal Transformer 生成 agent 环境表示，再控制交互 agent。
+- **WO2025240379A1 - Real-time multi-modal artificial intelligence agent**
+  描述实时多模态 agent、输入 tokenization 与模型部署解耦、缓存、事件检测、实时交互和 memory layer。
+- **US12387036B1 - Multimodal agent for efficient image-text interface automation**
+  描述原生视觉 UI 理解、agent loop、DSL 和 actuation layer，把模型指令转成真实 web/UI 操作。
+- **Systems and methods for an artificial intelligence agent for graphical user interface automation**
+  描述跨 web、desktop、mobile GUI 的视觉 grounding training 与 planning / reasoning training。
+
+这些专利说明：产业界已经把“多模态输入 + GUI 自动化 + agent loop + actuation layer + memory / caching”视为重要系统结构。
+
+对我们有两个启发：
+
+1. 不能把“多模态 agent 操作 UI”当成全新空白点。
+2. 真正可探索的空间可能在更高层：统一的高维语义状态、可验证的人机协作协议、科研/知识工作场景里的 world state，而不只是自动点击界面。
+
+## 初步综合判断
+
+这次扫描后的结论不是“别人都做完了”，也不是“我们没必要做”。更准确的判断是：
+
+> 这些问题已经被许多人从不同方向切开了，但还没有形成一个统一的、高带宽、人机协作型 AI 系统框架。
+
+目前已有工作大致呈现出碎片化格局：
+
+```text
+GUI agent 解决“看屏幕和操作”
+world model 解决“预测环境变化”
+token compression 解决“高维输入成本”
+memory agent 解决“长期状态”
+verification agent 解决“行动后检查”
+latent communication 解决“模型间高带宽通信”
+patent/product 解决“界面自动化系统化”
+```
+
+但我们的核心问题横跨这些方向：
+
+> 能否把多模态输入、语义 codec、持续 world state、行动验证、长期记忆和 latent 通信整合为一个面向人机协作的高带宽接口？
+
+这可能才是值得继续挖的地方。
+
+## 下一步研究方法
+
+为了避免重复造轮子，下一步不应该直接设计方案，而应该先建立一个 prior-art matrix：
+
+```text
+方向
+  - 已有代表工作
+  - 解决了什么
+  - 没解决什么
+  - 可复用的组件
+  - 风险与限制
+  - 对我们问题的启发
+```
+
+然后再逐层推进：
+
+1. 先选一个具体场景，例如科研 AI 助手、论文写作、代码工作区、GUI 操作或多文档理解。
+2. 对该场景列出需要的高带宽信号。
+3. 查现有项目是否已有可复用模块。
+4. 对每个缺口判断是工程集成问题、模型训练问题、评测问题，还是交互协议问题。
+5. 最后才提出自己的系统设计。
+
+这会让后续方案建立在外部已有工作的地图上，而不是只建立在内部直觉上。
+
+### 初步参考来源清单
+
+这不是最终 bibliography，而是下一轮深入阅读和 prior-art matrix 的种子清单：
+
+- OSWorld: <https://github.com/xlang-ai/OSWorld>
+- OmniParser: <https://github.com/microsoft/OmniParser>
+- UI-TARS: <https://github.com/bytedance/UI-TARS>
+- UI-TARS Desktop / Agent TARS: <https://github.com/bytedance/UI-TARS-desktop>
+- Agent-S: <https://github.com/simular-ai/Agent-S>
+- ScreenAgent: <https://github.com/niuzaisheng/ScreenAgent>
+- Vision Wormhole: <https://github.com/xz-liu/heterogeneous-latent-mas>
+- Interlat: <https://github.com/XiaoDu-flying/Interlat>
+- M3-Agent: <https://github.com/ByteDance-Seed/m3-agent>
+- STEVE-R1: <https://github.com/FanbinLu/STEVE-R1>
+- UI-TARS paper: <https://arxiv.org/html/2501.12326v1>
+- Auto-GUI / You Only Look at Screens: <https://arxiv.org/html/2309.11436v4>
+- World Models as an Intermediary between Agents and the Real World: <https://arxiv.org/html/2602.00785v1>
+- Learning to Model the World with Language / Dynalang: <https://ar5iv.labs.arxiv.org/html/2308.01399>
+- LaDi-WM: <https://arxiv.org/html/2505.11528v1>
+- Vision Wormhole paper: <https://arxiv.org/html/2602.15382v2>
+- Interlat paper: <https://arxiv.org/html/2511.09149v4>
+- DeCo: <https://arxiv.org/html/2405.20985v1>
+- Token Sequence Compression for Efficient Multimodal Computing: <https://arxiv.org/html/2504.17892v1>
+- SDComp: <https://arxiv.org/pdf/2408.08575>
+- M3-Agent paper: <https://arxiv.org/html/2508.09736v2>
+- EgoMem: <https://arxiv.org/html/2509.11914>
+- MultiPLY: <https://openaccess.thecvf.com/content/CVPR2024/papers/Hong_MultiPLY_A_Multisensory_Object-Centric_Embodied_Large_Language_Model_in_3D_CVPR_2024_paper.pdf>
+- Tactile-based Multimodal Fusion Survey: <https://arxiv.org/html/2605.17336v1>
+- US20230178076A1: <https://patents.google.com/patent/US20230178076A1/en>
+- WO2025240379A1: <https://patents.google.com/patent/WO2025240379A1/en>
+- US12387036B1: <https://patents.google.com/patent/US12387036B1>
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
