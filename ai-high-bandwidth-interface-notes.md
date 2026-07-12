@@ -1439,6 +1439,236 @@ Workspace Paradigm:
 
 如果 workspace paradigm 在芯片验证中体现出更好的证据追踪、上下文复用、跨对象绑定和反馈更新能力，它就不只是一个 verification tool，而是一种可以推广的交互和认知范式。
 
+## 实现路线：先验证 workspace，再训练 latent model
+
+现在不能直接跳到“训练一个大模型”，也不能从多 agent 编排开始。更稳的实现路径应该是：
+
+> 先做一个可验证的 High-to-High Workspace 原型，再判断是否值得训练领域 latent model。
+
+核心目标是先比较：
+
+```text
+A. Direct Prompt
+   log + diff + RTL + spec → LLM
+
+B. Workspace Paradigm
+   log + diff + RTL + spec → workspace → evidence packet → LLM
+```
+
+如果 B 没有明显优势，就说明这个范式至少在当前场景下不成立。
+
+### 1. 第一阶段目标
+
+第一阶段不是做完整产品，而是做一个最小范式验证：
+
+> 给定一组芯片验证材料，系统能否先构建 workspace，再从 workspace 投影出 evidence packet，让 LLM 基于证据解释，而不是直接把所有材料塞进 prompt？
+
+这个阶段要验证的是：
+
+- workspace 能否保留比 prompt 更好的结构；
+- evidence packet 是否比长 prompt 更清晰；
+- LLM 是否能基于 evidence packet 给出更可靠解释；
+- 每条结论是否能追溯到原始 log、diff、RTL、spec；
+- 系统是否能减少输入 token 和人工上下文整理成本。
+
+### 2. 最小原型架构
+
+```text
+Domain Inputs
+  - regression.log
+  - failing_tests.txt
+  - git_diff.patch
+  - rtl/*.sv
+  - spec.md
+  - optional waveform
+
+        ↓
+
+Domain Encoders
+  - Log Encoder
+  - RTL Encoder
+  - Diff Encoder
+  - Test Encoder
+  - Spec Encoder
+  - Waveform Encoder
+
+        ↓
+
+Shared Workspace
+  - typed graph
+  - vector index
+  - event index
+  - provenance map
+
+        ↓
+
+Projector
+  - 取出和当前问题最相关的 evidence packet
+
+        ↓
+
+LLM Interface
+  - 解释 evidence
+  - 生成 hypothesis
+  - 提出 next check
+```
+
+这里 LLM 不是容器。真正的核心是 workspace。
+
+### 3. 第一版不要训练模型
+
+第一版先使用：
+
+- parser；
+- graph；
+- embedding；
+- rule-based alignment；
+- source provenance；
+- vector search。
+
+原因是：先证明信息结构有用，再决定是否训练模型。
+
+第一版需要建立的绑定关系包括：
+
+```text
+log event ↔ failing testcase
+log event ↔ signal name
+signal name ↔ RTL node
+RTL node ↔ git diff
+spec sentence ↔ signal / protocol rule
+failure signature ↔ similar historical failure
+```
+
+这些绑定关系就是 workspace 的核心价值。
+
+### 4. 第一版目录结构
+
+```text
+/high_to_high_workspace
+  /examples
+    /case_001
+      regression.log
+      failing_tests.txt
+      git_diff.patch
+      spec.md
+      rtl/
+
+  /encoders
+    log_encoder.py
+    rtl_encoder.py
+    diff_encoder.py
+    spec_encoder.py
+    test_encoder.py
+
+  /workspace
+    build_workspace.py
+    graph_store.py
+    vector_store.py
+    provenance.py
+
+  /projector
+    build_evidence_packet.py
+
+  /llm_interface
+    ask_workspace.py
+    prompts/
+
+  /eval
+    direct_prompt_baseline.py
+    workspace_baseline.py
+    score_outputs.py
+```
+
+这个目录只是实现草图。它不是最终形态，但能支撑第一轮范式验证。
+
+### 5. 最小 demo
+
+运行：
+
+```text
+python build_workspace.py examples/case_001
+python ask_workspace.py "这次 regression 最可能的 root cause 是什么？"
+```
+
+输出不应该是普通聊天回答，而应该是：
+
+```text
+Hypothesis:
+  ready_o / fifo_full 相关改动可能导致 backpressure timeout。
+
+Evidence:
+  - 83% failing tests 都在 fifo_full asserted 后 timeout。
+  - 最近 diff 修改了 ready_o gating logic。
+  - spec 3.2 要求 fifo_full 后 ready_o 在 2 cycles 内 deassert。
+  - log 第 2481-2509 行出现相同 timeout signature。
+
+Next Check:
+  rerun dma_backpressure_random with fifo_full, ready_o, valid_i dumped。
+
+Uncertainty:
+  目前缺少完整 waveform，需要确认其他 failing tests 是否同样 pattern。
+```
+
+每条 evidence 都必须能追溯到原始来源。
+
+### 6. 第二阶段才训练 latent model
+
+如果第一版证明 workspace 有用，再训练小的领域表示模型。
+
+训练数据可以是：
+
+```text
+log snippet ↔ RTL node
+failure signature ↔ bug fix commit
+waveform segment ↔ signal behavior
+spec rule ↔ assertion / testcase
+testcase failure ↔ root cause module
+```
+
+训练目标是：
+
+```text
+相关对象 embedding 靠近
+不相关对象 embedding 远离
+```
+
+这时才真正进入：
+
+> Engineering Latent Model
+
+而不是脚本系统。
+
+### 7. 分阶段路线
+
+```text
+Phase 0：准备 5-10 个真实或模拟 failure cases
+Phase 1：做 direct prompt baseline
+Phase 2：做 workspace MVP
+Phase 3：比较 workspace 是否优于 direct prompt
+Phase 4：如果有效，训练领域 latent encoder
+Phase 5：加入 action / rerun / feedback loop
+Phase 6：最后再考虑 multi-agent
+```
+
+多 agent 是最后，不是开始。
+
+### 8. 当前最关键的一步
+
+现在最应该做的是：
+
+> 一个 case-based workspace benchmark。
+
+也就是准备几个芯片验证 failure case，然后比较：
+
+```text
+Direct Prompt
+  vs
+Workspace Evidence Packet
+```
+
+如果 workspace 不能赢，就停止或重新定义范式。
+如果 workspace 能赢，再继续做 latent model。
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
