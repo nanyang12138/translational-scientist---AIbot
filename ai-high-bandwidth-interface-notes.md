@@ -994,6 +994,316 @@ Proposed:
 
 如果做不到这一点，就不值得继续。
 
+## 修正版小原型：Verification Latent Workspace
+
+前面的“Verification Cognitive Agent”仍然容易退回传统 agent 方案：多个子 agent 调工具、LLM 做中心调度、状态只是辅助记录。这个方向有工程价值，但它不完全等于最初讨论的 high-to-high。
+
+更准确的修正是：
+
+> 原型不应以多 agent 为中心，而应以工程高维状态空间为中心。Agent 只是使用这个状态空间的一个执行层。
+
+也就是说，第一版真正要做的不是：
+
+```text
+LLM + tools + memory + many agents
+```
+
+而是：
+
+```text
+Engineering latent state
+  + alignment / binding
+  + retrieval / ranking
+  + evidence projection
+  + LLM explanation / planning
+```
+
+### 1. 它和多 agent 系统的区别
+
+普通多 agent 系统通常是：
+
+```text
+LLM 是中心
+工具是手脚
+状态是日志
+子 agent 是任务分发者
+```
+
+我们真正想做的是：
+
+```text
+工程高维状态是中心
+LLM 是解释器 / 规划器
+工具负责更新状态
+agent 只是工作流外壳
+```
+
+核心差别是：
+
+> 多 agent 解决“谁来做事”；latent workspace 解决“信息以什么形式存在、如何被对齐、如何被查询、如何被复用”。
+
+如果没有后者，只加更多 agent，仍然是低维 prompt 工作流。
+
+### 2. 最小原型长什么样
+
+可以从一个很小的芯片验证场景开始：
+
+> 给定一次 regression failure，系统不直接把 log 粘给 LLM，而是先把 log、RTL diff、testcase、spec 和可选 waveform 转成共享工程状态空间。
+
+最小输入：
+
+```text
+inputs/
+  regression.log
+  failing_tests.txt
+  git_diff.patch
+  rtl/
+    target_module.sv
+  spec.md
+  optional_waveform.vcd
+```
+
+这些输入进入不同 encoder：
+
+```text
+Log Encoder
+  regression.log → event sequence + failure signature vectors
+
+RTL Encoder
+  SystemVerilog → AST graph + module/interface/signal dependency graph
+
+Diff Encoder
+  git_diff.patch → change graph + touched modules/signals
+
+Test Encoder
+  failing_tests.txt → testcase scenario graph + failure distribution
+
+Spec Encoder
+  spec.md → requirement graph + protocol constraints
+
+Waveform Encoder
+  optional_waveform.vcd → signal transition features + suspicious time windows
+```
+
+注意：这里的关键不是把这些内容总结成自然语言，而是保留它们各自的结构。
+
+### 3. Latent workspace 里保存什么
+
+第一版不一定需要真正训练神经 latent。可以先用“结构化图 + embedding + provenance”的混合表示，作为工程 latent workspace 的可解释近似。
+
+```text
+workspace/
+  objects.json
+  embeddings/
+    failure_signatures.vec
+    log_events.vec
+    rtl_nodes.vec
+    spec_requirements.vec
+    test_scenarios.vec
+    waveform_segments.vec
+  graphs/
+    design_graph.json
+    signal_dependency_graph.json
+    change_graph.json
+    requirement_graph.json
+    evidence_graph.json
+  indexes/
+    vector_index
+    symbol_index
+    event_index
+  provenance/
+    source_spans.json
+```
+
+这里每个节点都要能追溯来源：
+
+```text
+failure_signature_17
+  - 来自 regression.log 第 2481-2509 行
+  - 对应 testcase dma_backpressure_random
+  - 关联 signal fifo_full
+  - 关联 RTL diff target_module.sv 第 83-101 行
+  - 可能对应 spec.md 中 backpressure rule
+```
+
+这比“LLM 读一段 log 后给建议”更接近 high-to-high，因为系统首先建立了工程对象之间的高维关系。
+
+### 4. LLM 在原型里的角色
+
+LLM 不是主数据容器，而是三个角色：
+
+```text
+1. Query Translator
+   把工程师的语言问题转成 workspace 查询。
+
+2. Reasoning / Explanation Engine
+   根据 workspace 返回的 evidence packet 做解释、排序和假设生成。
+
+3. Action Planner
+   根据当前不确定性建议下一步最小验证动作。
+```
+
+例如工程师问：
+
+```text
+为什么这批 regression 失败？
+```
+
+LLM 不应该直接读全部 log，而应该触发：
+
+```text
+query_workspace(
+  failure_clusters,
+  recent_diffs,
+  related_signals,
+  spec_constraints,
+  similar_past_failures
+)
+```
+
+然后 workspace 返回一个 evidence packet：
+
+```text
+Evidence Packet
+  - cluster: dma_backpressure failures
+  - repeated signature: timeout after fifo_full asserted
+  - first suspicious commit: abc123
+  - touched module: target_module.sv
+  - related signal: fifo_full, ready_o
+  - spec link: backpressure rule 3.2
+  - suggested next check: rerun with fifo_full trace enabled
+```
+
+LLM 只负责把这个 packet 解释给人，并提出下一步动作。
+
+### 5. 原型的数据流
+
+整体流程可以是：
+
+```text
+1. Ingest
+   读取 log、RTL、diff、test、spec、waveform。
+
+2. Encode
+   各模态生成结构化对象、图和 embedding。
+
+3. Align
+   把 failure event、RTL node、signal、testcase、spec requirement 对齐。
+
+4. Store
+   写入 Verification Latent Workspace。
+
+5. Query
+   工程师用语言提出目标，系统转成 workspace 查询。
+
+6. Project
+   workspace 返回小而密集的 evidence packet。
+
+7. Explain
+   LLM 生成工程师可读结论。
+
+8. Act / Update
+   运行最小 rerun 或其他验证动作，结果回写 workspace。
+```
+
+### 6. 第一版可以不用多个 agent
+
+为了避免偏离 high-to-high，第一版甚至可以不要多 agent。
+
+第一版只需要四个模块：
+
+```text
+1. Encoders
+   把工程对象转成图、向量、索引和来源引用。
+
+2. Workspace
+   保存工程 latent state，并支持查询、相似度、图遍历和证据追踪。
+
+3. Projector
+   把 workspace 中相关的高维状态投影成小 evidence packet。
+
+4. LLM Interface
+   把人的语言目标转成查询，并把 evidence packet 解释成人话。
+```
+
+Agent 可以以后再加：
+
+```text
+Phase 1: latent workspace + LLM explanation
+Phase 2: add action planner
+Phase 3: add tool execution
+Phase 4: add multi-agent workflow
+```
+
+这样可以保证核心不是“agent 越多越好”，而是“状态表示是否更好”。
+
+### 7. 一个可见 demo
+
+demo 可以很简单：
+
+```text
+命令：
+  python build_workspace.py \
+    --log inputs/regression.log \
+    --diff inputs/git_diff.patch \
+    --rtl inputs/rtl \
+    --spec inputs/spec.md \
+    --tests inputs/failing_tests.txt
+
+  python ask_workspace.py "这次 regression 最可能的 root cause 是什么？"
+```
+
+输出不是纯 LLM 答案，而是：
+
+```text
+Top Hypothesis:
+  target_module.sv 中 ready_o / fifo_full 相关改动可能导致 backpressure 场景 timeout。
+
+Evidence:
+  1. 失败 cluster 中 83% testcase 都在 fifo_full asserted 后 timeout。
+  2. 最近 diff 修改了 target_module.sv 中 ready_o gating 条件。
+  3. spec 3.2 要求 fifo_full 时 ready_o 必须在 2 cycle 内 deassert。
+  4. optional waveform 显示 ready_o 延迟 deassert 5 cycle。
+
+Next Minimal Check:
+  rerun dma_backpressure_random with signals fifo_full, ready_o, valid_i dumped.
+
+Uncertainty:
+  waveform 只覆盖一个 testcase，需要确认 cluster 中其他 testcase 是否同样模式。
+```
+
+关键是每条 evidence 都能点击或追溯到原始 log / diff / spec / waveform。
+
+### 8. 这才更像 high-to-high
+
+这个原型的重点不是“LLM 更会说”，而是：
+
+> 工程世界先进入一个结构化、高维、可对齐、可检索、可追溯的 workspace，再由 LLM 进行语言解释和行动规划。
+
+因此它更接近：
+
+```text
+High-dimensional engineering world
+  → engineering latent workspace
+  → LLM / agent interface
+```
+
+而不是：
+
+```text
+High-dimensional engineering world
+  → prompt summary
+  → LLM
+```
+
+### 9. 最小判断
+
+如果我们要做小原型，最应该先做的不是多个 agent，而是：
+
+> 一个能把 regression failure、RTL diff、testcase、spec 和 waveform 绑定到同一个工程状态空间里的 Verification Latent Workspace。
+
+LLM 是引擎，但不是容器；语言是控制入口，但不是全部输入；agent 是后续执行层，但不是第一性核心。
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
