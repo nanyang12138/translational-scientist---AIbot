@@ -541,6 +541,255 @@ patent/product 解决“界面自动化系统化”
 - WO2025240379A1: <https://patents.google.com/patent/WO2025240379A1/en>
 - US12387036B1: <https://patents.google.com/patent/US12387036B1>
 
+## 从人脑启发到工程原型：芯片设计与验证场景
+
+前面的讨论已经说明，单纯把所有信息压成 prompt 不是理想路径。但问题还需要进一步收敛：
+
+> 如果我们真的要做一个系统，它到底是什么？是 agent 吗？输入是什么？输出是什么？神经科学在这里起什么作用？
+
+一个更清晰的答案是：
+
+> 它不是单一聊天 agent，而是一个受人脑启发的工程认知层，再连接一组 agent 执行器。
+
+换句话说，LLM / LMM 可以像“推理核心”或“语言-计划系统”，但它不应该独自承担全部感知、记忆、状态维护和验证工作。真正要做的是在模型外部建立一个类似人脑认知结构的工程系统。
+
+### 1. 它是不是 agent？
+
+它可以包含 agent，但整体不只是 agent。
+
+更准确地说，它应该分成两层：
+
+```text
+Engineering Cognitive Layer
+  - 感知工程对象
+  - 维护工程状态
+  - 绑定证据
+  - 记录历史
+  - 评估不确定性
+  - 决定当前注意力
+
+Agent Execution Layer
+  - 调用 EDA / 仿真 / regression / lint / formal / coverage 工具
+  - 读写代码
+  - 分析日志
+  - 生成 patch
+  - 运行验证
+  - 回写结果
+```
+
+如果只叫 agent，容易让人误以为它只是一个“会调用工具的 LLM”。但我们真正想做的是：
+
+> 一个有感知、记忆、注意力、预测和行动反馈的工程认知系统。
+
+### 2. 输入最终是不是只有语言？
+
+不应该只有语言。
+
+语言仍然重要，但它应该主要承担“控制通道”的角色：
+
+```text
+语言输入
+  - 用户目标
+  - 约束条件
+  - 优先级
+  - 解释需求
+  - 人类判断
+```
+
+而工程世界本身应该通过多种非语言输入进入系统：
+
+```text
+工程输入
+  - RTL / Verilog / SystemVerilog
+  - testbench / UVM components
+  - regression results
+  - simulation logs
+  - waveform / trace
+  - coverage reports
+  - lint / CDC / RDC reports
+  - timing / synthesis reports
+  - bug tickets
+  - git diff / commit history
+  - spec / architecture documents
+  - design review comments
+```
+
+这些东西不应该先被粗暴总结成一段 prompt。它们应该被解析成结构化、多层次、可查询的工程状态。
+
+### 3. 芯片验证场景里的“多感官”是什么？
+
+对于人脑来说，多感官是眼睛、耳朵、皮肤、鼻子、本体感觉等。对于芯片工程系统来说，“多感官”不是物理感官，而是不同工程信号源：
+
+```text
+视觉等价物：波形、覆盖率图、dashboard、diff view
+听觉等价物：日志流、报错信息、warning pattern
+触觉等价物：工具反馈、失败 testcase、timing violation、assertion failure
+本体感觉等价物：当前代码库状态、分支状态、构建环境、依赖版本
+语言等价物：spec、review comment、工程师指令、bug 描述
+情景记忆：过去 regression、历史 bug、修复记录、失败实验
+```
+
+这说明“类人脑”不是要复制人类器官，而是要复制一种功能结构：
+
+> 多源感知 - 注意力路由 - 跨源绑定 - 情景记忆 - 预测误差 - 行动反馈。
+
+### 4. 神经科学在这里提供什么基础？
+
+神经科学不是直接告诉我们如何写 Python，也不是让我们机械复制大脑结构。它提供的是系统设计原则。
+
+可以映射为：
+
+```text
+模态皮层
+  → 不同工程对象用不同 parser / encoder 处理
+
+丘脑式路由
+  → 根据任务、异常、置信度和成本决定当前关注哪些信号
+
+海马式记忆
+  → 记录一次次工程事件：某次 regression、某个失败、某次修复、某个结论
+
+全局工作空间
+  → 只把当前最相关的问题、证据、不确定性和下一步行动交给 LLM
+
+预测处理
+  → 系统在行动前形成预期，行动后比较结果，产生 prediction error
+
+主动推理
+  → 系统主动运行测试、查日志、开 waveform、追 commit，用行动减少不确定性
+```
+
+这就是神经科学对当前 AI 的作用：
+
+> 它不是替代 Transformer，而是指导我们如何组织 Transformer 周围的感知、状态、记忆、注意力和反馈系统。
+
+### 5. 一个具体原型：Verification Cognitive Agent
+
+结合芯片设计和验证场景，第一个更具体的原型可以叫：
+
+> Verification Cognitive Agent
+
+但要注意，它不是只有 agent。它的核心是：
+
+```text
+Verification World State
+  + Tool Adapters
+  + Attention Router
+  + Episodic Memory
+  + Global Workspace
+  + LLM Planner
+  + Verification Loop
+```
+
+它要维护的状态包括：
+
+```text
+Design State
+  - 当前模块
+  - RTL 结构
+  - 接口协议
+  - 关键状态机
+
+Verification State
+  - test plan
+  - testcase 列表
+  - regression 历史
+  - coverage gap
+  - assertion 状态
+
+Failure State
+  - failing tests
+  - error signatures
+  - first failing commit
+  - suspected root cause
+  - related waveform windows
+
+Evidence State
+  - 哪个 log 支持哪个判断
+  - 哪个 waveform 支持哪个假设
+  - 哪个 commit 引入了变化
+  - 哪个 spec 条款对应哪个检查
+
+Action State
+  - 已经尝试过什么
+  - 哪些尝试失败了
+  - 下一步最值得跑什么
+  - 成本和风险是什么
+```
+
+### 6. 工作循环
+
+这个系统的循环可以是：
+
+```text
+1. Observe
+   读取 RTL、testbench、logs、coverage、waveform、regression dashboard、spec。
+
+2. Encode
+   用不同 parser / encoder 生成结构化对象，而不是全部转成 prompt。
+
+3. Bind
+   把 test failure、log line、waveform signal、commit diff、spec requirement 绑定成证据链。
+
+4. Attend
+   根据当前任务选择最相关的信息进入 global workspace。
+
+5. Reason
+   LLM / LMM 在工作空间中推理，提出假设和下一步动作。
+
+6. Act
+   调用仿真、lint、coverage、formal、脚本、代码搜索或 patch 工具。
+
+7. Verify
+   比较预期和实际结果，判断假设是否被支持。
+
+8. Update
+   更新 world state、记忆、证据链和下一步计划。
+```
+
+### 7. 最小可做版本
+
+第一版不需要训练新模型。可以先做一个外部系统：
+
+```text
+输入：
+  - 一个 RTL 模块
+  - 一组 testcase / regression log
+  - 一个 spec 片段
+  - 一个失败报告
+
+系统构建：
+  - design_index.json
+  - regression_state.json
+  - failure_clusters.json
+  - evidence_graph.json
+  - action_history.json
+
+LLM 看到：
+  - 当前任务
+  - active workspace
+  - 可调用工具
+  - 必须引用证据的规则
+
+输出：
+  - 可能 root cause
+  - 证据链
+  - 下一步最小验证动作
+  - 需要人工判断的问题
+```
+
+这样，语言不再是唯一输入。语言只是工程师和系统之间的控制接口；真正的工程世界通过结构化状态层进入系统。
+
+### 8. 当前最重要的收敛
+
+目前我们不应该把目标定义成“做一个通用 high-to-high AI”。这太大。
+
+更合适的目标是：
+
+> 做一个受人脑启发的芯片验证工程认知系统，让 AI 能持续理解 RTL、testcase、regression、log、coverage、waveform、spec 和历史修复，并通过行动反馈不断更新自己的工程世界状态。
+
+这就是一个可以开始落地的方向。
+
 ## 进一步研究方向
 
 后续可以继续深入以下问题：
