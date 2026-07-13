@@ -1445,6 +1445,60 @@ Workspace Paradigm:
 
 > 先做一个可验证的 High-to-High Workspace 原型，再判断是否值得训练领域 latent model。
 
+### 0. 当前 Agent 与我们要做的东西有什么不同
+
+现在的 Agent 看起来已经能处理多个东西：文件、网页、代码、图片、日志、工具输出、数据库、shell 结果等。但大多数 Agent 的真实流程仍然是：
+
+```text
+多源对象
+  ↓
+文本化 / JSON 化 / tool result 化
+  ↓
+LLM 语言上下文
+  ↓
+LLM 推理
+```
+
+也就是说，它们是：
+
+> 多工具 + 语言中心。
+
+我们要探索的不是“能不能处理多个输入”，而是：
+
+> 多个输入进入系统之后，是否仍然全部被压成语言？还是能保留它们原本的结构、关系、时序和来源？
+
+普通 Agent 的重点是：
+
+```text
+谁来调工具、谁来执行步骤、谁来总结结果。
+```
+
+High-to-High Workspace 的重点是：
+
+```text
+领域对象以什么形式存在、如何被对齐、如何被查询、如何被复用。
+```
+
+因此，真正的实现核心不是增加更多子 Agent，而是构建一个 workspace：
+
+```text
+工程对象
+  → 编码
+  → workspace
+  → evidence packet
+  → LLM 解释 / 规划
+```
+
+而不是：
+
+```text
+工程对象
+  → 全部转成 prompt
+  → LLM 猜测
+```
+
+这个区别决定了项目是否真的不同于现有 Agent 范式。
+
 核心目标是先比较：
 
 ```text
@@ -1456,6 +1510,136 @@ B. Workspace Paradigm
 ```
 
 如果 B 没有明显优势，就说明这个范式至少在当前场景下不成立。
+
+### 0.1 最小实现的四个核心模块
+
+真正的第一版不需要多 Agent，也不需要先训练大模型。最小实现只有四个核心模块：
+
+```text
+1. Encoders
+   把不同领域对象转成结构化表示。
+
+2. Workspace
+   保存图、向量、索引、来源、关系和跨对象绑定。
+
+3. Projector
+   从 workspace 中取出当前问题相关的 evidence packet。
+
+4. LLM Interface
+   把人的语言问题转成 workspace 查询，再把 evidence packet 解释成人话。
+```
+
+在芯片验证场景中，输入对象可以是：
+
+```text
+regression.log
+git_diff.patch
+RTL / SystemVerilog
+spec.md
+failing_tests.txt
+waveform.vcd
+```
+
+它们分别被编码成：
+
+```text
+Log Encoder:
+  log → event sequence + failure signature
+
+RTL Encoder:
+  RTL → module graph + signal graph + AST
+
+Diff Encoder:
+  diff → changed modules / signals / functions
+
+Spec Encoder:
+  spec → requirement graph
+
+Test Encoder:
+  tests → testcase scenario graph
+
+Waveform Encoder:
+  waveform → signal transition features
+```
+
+关键是：
+
+> 不要先总结成自然语言，而是先进入 workspace。
+
+### 0.2 Workspace 的最小数据形态
+
+MVP 不需要复杂数据库，可以先用 JSON、图结构和向量索引：
+
+```text
+workspace/
+  objects.json
+  edges.json
+  embeddings/
+  source_spans.json
+  evidence_graph.json
+```
+
+一个对象可以长这样：
+
+```json
+{
+  "id": "failure_001",
+  "type": "log_event",
+  "signature": "timeout_after_fifo_full",
+  "source": {
+    "file": "regression.log",
+    "lines": [2481, 2509]
+  },
+  "linked_objects": [
+    "test_dma_backpressure_random",
+    "signal_fifo_full",
+    "rtl_target_module_ready_o"
+  ]
+}
+```
+
+这个结构让系统知道：
+
+```text
+这个失败来自哪里；
+关联哪个 testcase；
+关联哪个 signal；
+关联哪个 RTL diff；
+关联哪个 spec rule。
+```
+
+这才是 high-to-high 的工程近似：不是直接把对象语言化，而是在 workspace 中保留它们的结构和关联。
+
+### 0.3 Projector 是关键
+
+Projector 不让 LLM 读取整个 workspace，而是投影出一个小而密集的 evidence packet：
+
+```text
+Evidence Packet:
+  failure_cluster: dma_backpressure
+  repeated_signature: timeout after fifo_full asserted
+  suspicious_diff: target_module.sv ready_o gating changed
+  related_spec: backpressure rule 3.2
+  related_signal: fifo_full, ready_o
+  next_check: rerun with fifo_full / ready_o dumped
+```
+
+LLM 只解释这个 packet，并提出下一步验证动作。
+
+所以 LLM 的角色不是全部信息的容器，而是：
+
+```text
+1. Query Translator
+   把用户问题转成 workspace 查询。
+
+2. Explanation Engine
+   把 evidence packet 解释成人能理解的结论。
+
+3. Action Planner
+   根据当前不确定性提出下一步验证动作。
+```
+
+这就是实现上的关键分工。
 
 ### 1. 第一阶段目标
 
