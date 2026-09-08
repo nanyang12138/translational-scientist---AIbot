@@ -1,19 +1,32 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## 这个仓库是什么
 
-This repository (`translational-scientist---AIbot`) is currently an empty/new project with only a README.md file. There is no application code, no dependencies, no services, and no tests.
+专题文稿与演示文稿仓库。没有长期运行的应用服务。Python 仅用于用 `python-pptx` 生成 `.pptx`。
 
-### Current state
+## 环境
 
-- **No source code** — No programming language or framework has been chosen yet.
-- **No dependency files** — No `package.json`, `requirements.txt`, `pyproject.toml`, or similar.
-- **No services to run** — No application server, database, or external service is configured.
-- **No lint/test/build commands** — None are available until code is added.
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-### Future agents
+需要 Python 3，以及能显示中文的系统字体（Windows 上为微软雅黑；生成脚本把东亚字体写成 `Microsoft YaHei`）。
 
-When code is added to this repository, this file should be updated with:
-- How to install dependencies
-- How to run lint, tests, and the application
-- Any non-obvious development caveats
+## 生成演示文稿
+
+```bash
+# 《剧院魅影》全面介绍与分析（22 页，16:9）
+python3 scripts/build_phantom_ppt.py
+# 输出：dist/剧院魅影_全面介绍与分析.pptx
+
+# in vivo CAR-T 转化科学家（13 页，16:9）
+python3 scripts/build_ppt.py
+# 输出：dist/in_vivo_CART_Translational_Scientist.pptx
+```
+
+深度文稿在 `docs/`。没有自动测试套件；改 PPT 脚本后应重新运行对应 `build_*.py`，并用 python-pptx 抽文本核对页数与关键事实。
+
+## 注意
+
+- 不要在文稿中逐句引用仍受版权保护的音乐剧歌词。
+- 勒鲁原著小说已进入公有领域；韦伯音乐剧文本与配乐仍受版权保护。
